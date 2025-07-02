@@ -35,7 +35,7 @@ public class CustomerController {
     public ResponseEntity<CustomerResponseDto> getCustomerById(@PathVariable String customerId) {
         log.info("Received request to get customer with ID: {}", customerId);
         CustomerResponseDto response = customerService.getCustomerById(customerId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping("/email/{email}")
