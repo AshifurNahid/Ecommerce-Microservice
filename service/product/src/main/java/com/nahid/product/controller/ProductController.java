@@ -26,6 +26,17 @@ public class ProductController {
 
     private final ProductService productService;
 
+    ///  Purchase Order API
+    /// This API allows users to manage products in the system, including creating, retrieving, updating, and deleting products.
+    /// It also supports searching for products based on various criteria and checking product availability.
+    /// This API is designed to handle product-related operations in a paginated manner, ensuring efficient data retrieval and management.
+
+
+
+
+
+
+
     @PostMapping
     public ResponseEntity<ProductResponseDto> createProduct(@Valid @RequestBody CreateProductRequestDto request) {
         log.info("Received request to create product with SKU: {}", request.getSku());

@@ -1,15 +1,19 @@
 package com.nahid.order.service.impl;
 
+import com.nahid.order.client.CustomerClient;
 import com.nahid.order.dto.CreateOrderRequest;
+import com.nahid.order.dto.CustomerResponseDto;
 import com.nahid.order.dto.OrderDto;
 import com.nahid.order.entity.Order;
 import com.nahid.order.entity.OrderItem;
+import com.nahid.order.enums.CustomerStatus;
 import com.nahid.order.enums.OrderStatus;
 import com.nahid.order.exception.OrderNotFoundException;
 import com.nahid.order.exception.OrderProcessingException;
 import com.nahid.order.mapper.OrderMapper;
 import com.nahid.order.repository.OrderRepository;
 import com.nahid.order.service.OrderService;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -19,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -30,12 +35,15 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
+    private final CustomerClient customerClient;
 
     @Override
     public OrderDto createOrder(CreateOrderRequest request) {
         log.info("Creating order for customer: {}", request.getCustomerId());
 
         try {
+            validateCustomerForOrder(request.getCustomerId());
+
             Order order = orderMapper.toEntity(request);
             order.setOrderNumber(generateOrderNumber());
             order.setStatus(OrderStatus.PENDING);
@@ -54,7 +62,10 @@ public class OrderServiceImpl implements OrderService {
 
             order.setTotalAmount(totalAmount);
 
-            orderItems.forEach(order::addOrderItem);
+            //orderItems.forEach(order::addOrderItem);
+            for (OrderItem item : orderItems) {
+                order.addOrderItem(item);
+            }
 
             Order savedOrder = orderRepository.save(order);
 
@@ -67,6 +78,27 @@ public class OrderServiceImpl implements OrderService {
             log.error("Error creating order for customer: {}", request.getCustomerId(), e);
             throw new OrderProcessingException("Failed to create order", e);
         }
+    }
+
+    private void validateCustomerForOrder(@NotNull(message = "Customer ID is required") String customerId) {
+
+
+        Optional<CustomerResponseDto> customerResponseDto = customerClient.getCustomerById(customerId);
+        if (customerResponseDto.isEmpty()) {
+            log.error("Customer not found with ID: {}", customerId);
+            throw new OrderProcessingException("Customer not found with ID: " + customerId);
+        }
+        if (CustomerStatus.SUSPENDED == customerResponseDto.get().getStatus()) {
+            log.error("Customer with ID: {} is Suspended", customerId);
+            throw new OrderProcessingException("Customer is Suspended");
+        }
+        log.debug("Customer with ID: {} is valid and active", customerId);
+
+        if (CustomerStatus.INACTIVE == customerResponseDto.get().getStatus() ) {
+            log.error("Customer with ID: {} is Inactive", customerId);
+            throw new OrderProcessingException("Customer is Inactive");
+        }
+
     }
 
     @Override
