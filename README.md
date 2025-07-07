@@ -22,71 +22,71 @@ A distributed, event-driven ecommerce platform built with Spring Boot and Spring
 ## 🗺️ Architecture Diagram (Mermaid)
 
 ```mermaid
-flowchart LR
-    %% Public
-    ANGULAR[Angular Frontend]
-    GW[API Gateway]
-
-    %% Services
-    CUSTOMER[Customer Service]
-    PRODUCT[Product Service]
-    ORDER[Order Service]
-    PAYMENT[Payment Service]
-    NOTIFICATION[Notification Service]
-    KAFKA[Kafka Broker]
-    ZIPKIN[Zipkin]
-    EUREKA[Eureka Server]
-    CONFIG[Config Server]
-
-    %% Databases
-    MONGO_CUST[(MongoDB)]
-    MONGO_NOTI[(MongoDB)]
-    PSQL_PROD[(Postgres)]
-    PSQL_ORD[(Postgres)]
-    PSQL_PAY[(Postgres)]
-
-    %% Public to gateway
-    ANGULAR --> GW
-
-    %% Gateway routes
-    GW --> CUSTOMER
-    GW --> PRODUCT
-    GW --> ORDER
-
-    %% Customer
-    CUSTOMER --> MONGO_CUST
-
-    %% Product
-    PRODUCT --> PSQL_PROD
-
-    %% Order
-    ORDER --> PSQL_ORD
-    ORDER -->|sync| PAYMENT
-    ORDER -->|async| KAFKA
-
-    %% Payment
-    PAYMENT --> PSQL_PAY
-    PAYMENT -->|async| KAFKA
-
-    %% Kafka events
-    KAFKA --> NOTIFICATION
-    NOTIFICATION --> MONGO_NOTI
-
-    %% Discovery & config
-    EUREKA --> CONFIG
-    GW --> EUREKA
-    CUSTOMER --> EUREKA
-    PRODUCT --> EUREKA
-    ORDER --> EUREKA
-    PAYMENT --> EUREKA
-    NOTIFICATION --> EUREKA
-
-    %% Distributed tracing
-    ZIPKIN -.-> GW
-
+flowchart TD
+    %% External Client
+    Client[Client] --> Gateway[API Gateway]
+    
+    %% Private Network Services
+    Gateway -->|/customers| Customer[Customer Service]
+    Gateway -->|/products| Product[Product Service] 
+    Gateway -->|/orders| Order[Order Service]
+    
+    %% Databases for each service
+    Customer --> CustomerDB[(MongoDB)]
+    Product --> ProductDB[(Database)]
+    Order --> OrderDB[(Database)]
+    
+    %% Payment flow
+    Order -->|Create Payment| Payment[Payment Service]
+    Payment --> PaymentDB[(Database)]
+    
+    %% Async messaging through Kafka
+    Payment -->|Send Payment Confirmation| Kafka[Kafka Message Broker]
+    Kafka -->|Payment Confirmed| Notification[Notification Service]
+    Kafka -->|Send Order Confirmation| Order
+    
+    %% Notification database
+    Notification --> NotificationDB[(MongoDB)]
+    
+    %% External tracing
+    Notification --> Zipkin[Zipkin Distributed Tracing]
+    
+    %% Infrastructure services (bottom)
+    Eureka[Eureka Server]
+    Config[Config Server]
+    
+    %% Network boundaries
+    subgraph "Public Network"
+        Client
+    end
+    
+    subgraph "Private Network"
+        Gateway
+        Customer
+        Product
+        Order
+        Payment
+        Notification
+        CustomerDB
+        ProductDB
+        OrderDB
+        PaymentDB
+        NotificationDB
+        Kafka
+    end
+    
     %% Styling
-    classDef db fill:#f9f,stroke:#333,stroke-width:1px;
-    class MONGO_CUST,MONGO_NOTI,PSQL_PROD,PSQL_ORD,PSQL_PAY db;
+    classDef service fill:#90EE90,stroke:#006400,stroke-width:2px,color:#000
+    classDef database fill:#4682B4,stroke:#191970,stroke-width:2px,color:#fff
+    classDef infra fill:#FFD700,stroke:#FF8C00,stroke-width:2px,color:#000
+    classDef gateway fill:#FF6347,stroke:#8B0000,stroke-width:2px,color:#fff
+    classDef client fill:#FF69B4,stroke:#8B008B,stroke-width:2px,color:#fff
+    
+    class Customer,Product,Order,Payment,Notification service
+    class CustomerDB,ProductDB,OrderDB,PaymentDB,NotificationDB database
+    class Eureka,Config,Zipkin,Kafka infra
+    class Gateway gateway
+    class Client client
 
 ```
 
