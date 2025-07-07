@@ -23,84 +23,70 @@ A distributed, event-driven ecommerce platform built with Spring Boot and Spring
 
 ```mermaid
 flowchart LR
-    subgraph Public_Network
-        ANGULAR[Angular Frontend]
-    end
+    %% Public
+    ANGULAR[Angular Frontend]
+    GW[API Gateway]
 
-    subgraph Private_Network
-        GW[API Gateway]
+    %% Services
+    CUSTOMER[Customer Service]
+    PRODUCT[Product Service]
+    ORDER[Order Service]
+    PAYMENT[Payment Service]
+    NOTIFICATION[Notification Service]
+    KAFKA[Kafka Broker]
+    ZIPKIN[Zipkin]
+    EUREKA[Eureka Server]
+    CONFIG[Config Server]
 
-        CUSTOMER[Customer Service]
-        PRODUCT[Product Service]
-        ORDER[Order Service]
-        PAYMENT[Payment Service]
-        NOTIFICATION[Notification Service]
-        KAFKA[Kafka Message Broker]
-        ZIPKIN[Zipkin]
-        EUREKA[Eureka Server]
-        CONFIG[Config Server]
-        
-        MONGO_CUST[(MongoDB)]
-        MONGO_NOTI[(MongoDB)]
-        POSTGRES_PROD[(Postgres)]
-        POSTGRES_ORD[(Postgres)]
-        POSTGRES_PAY[(Postgres)]
-    end
+    %% Databases
+    MONGO_CUST[(MongoDB)]
+    MONGO_NOTI[(MongoDB)]
+    PSQL_PROD[(Postgres)]
+    PSQL_ORD[(Postgres)]
+    PSQL_PAY[(Postgres)]
 
-    %% public network to gateway
-    ANGULAR -- HTTP --> GW
+    %% Public to gateway
+    ANGULAR --> GW
 
-    %% API GW routes
-    GW -- /customers --> CUSTOMER
-    GW -- /products --> PRODUCT
-    GW -- /orders --> ORDER
+    %% Gateway routes
+    GW --> CUSTOMER
+    GW --> PRODUCT
+    GW --> ORDER
 
     %% Customer
-    CUSTOMER -- stores --> MONGO_CUST
-    CUSTOMER -.-> EUREKA
+    CUSTOMER --> MONGO_CUST
 
     %% Product
-    PRODUCT -- stores --> POSTGRES_PROD
-    PRODUCT -.-> EUREKA
+    PRODUCT --> PSQL_PROD
 
     %% Order
-    ORDER -- stores --> POSTGRES_ORD
-    ORDER -.-> EUREKA
-    ORDER -- Sync REST --> PAYMENT
-    ORDER -- Async Order Confirm --> KAFKA
+    ORDER --> PSQL_ORD
+    ORDER -->|sync| PAYMENT
+    ORDER -->|async| KAFKA
 
     %% Payment
-    PAYMENT -- stores --> POSTGRES_PAY
-    PAYMENT -.-> EUREKA
-    PAYMENT -- Async Payment Confirm --> KAFKA
+    PAYMENT --> PSQL_PAY
+    PAYMENT -->|async| KAFKA
 
-    %% Kafka to Notification
-    KAFKA -- events --> NOTIFICATION
-    NOTIFICATION -- stores --> MONGO_NOTI
-    NOTIFICATION -.-> EUREKA
+    %% Kafka events
+    KAFKA --> NOTIFICATION
+    NOTIFICATION --> MONGO_NOTI
 
-    %% Config + Eureka
-    GW -.-> EUREKA
-    EUREKA -- config --> CONFIG
+    %% Discovery & config
+    EUREKA --> CONFIG
+    GW --> EUREKA
+    CUSTOMER --> EUREKA
+    PRODUCT --> EUREKA
+    ORDER --> EUREKA
+    PAYMENT --> EUREKA
+    NOTIFICATION --> EUREKA
 
     %% Distributed tracing
-    CUSTOMER -.-> ZIPKIN
-    PRODUCT -.-> ZIPKIN
-    ORDER -.-> ZIPKIN
-    PAYMENT -.-> ZIPKIN
-    NOTIFICATION -.-> ZIPKIN
+    ZIPKIN -.-> GW
 
-    %% Style to match dashed/dotted lines in PNG
-    classDef dashed stroke-dasharray: 5 5
-    GW -.-> EUREKA:::dashed
-    CUSTOMER -.-> EUREKA:::dashed
-    PRODUCT -.-> EUREKA:::dashed
-    ORDER -.-> EUREKA:::dashed
-    PAYMENT -.-> EUREKA:::dashed
-    NOTIFICATION -.-> EUREKA:::dashed
-    EUREKA -- config --> CONFIG:::dashed
-
-
+    %% Styling
+    classDef db fill:#f9f,stroke:#333,stroke-width:1px;
+    class MONGO_CUST,MONGO_NOTI,PSQL_PROD,PSQL_ORD,PSQL_PAY db;
 
 ```
 
