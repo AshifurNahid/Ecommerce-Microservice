@@ -125,9 +125,6 @@ Zipkin collects trace data from all microservices for easier debugging of distri
 
 Pull requests are welcome! Please open an issue first to discuss what you would like to change.
 
-## License
-
-This project is licensed under the MIT License.
 
 ## Author
 
