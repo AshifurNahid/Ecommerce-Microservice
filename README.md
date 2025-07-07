@@ -19,19 +19,67 @@ A distributed, event-driven ecommerce platform built with Spring Boot and Spring
 
 ## Architecture
 
+## 🗺️ Architecture Diagram (Mermaid)
+
 ```mermaid
 graph TD
-    Client -->|HTTP| API_Gateway
-    API_Gateway -->|Load Balance| Eureka
-    API_Gateway --> OrderService
-    API_Gateway --> ProductService
-    OrderService -->|Kafka| PaymentService
-    PaymentService -->|Kafka| NotificationService
-    ConfigServer --> Eureka
-    Zipkin --> OrderService
-    Zipkin --> ProductService
-    Keycloak --> API_Gateway
-````
+
+%% Frontend
+A[Angular Frontend] -->|HTTP| GW(API Gateway)
+
+%% API Gateway routing
+GW -->|/customers| CUSTOMER
+GW -->|/products| PRODUCT
+GW -->|/orders| ORDER
+
+%% Customer Service
+CUSTOMER -.->|MongoDB| MDB_Customer[(MongoDB)]
+CUSTOMER -->|Service Discovery| EUREKA
+
+%% Product Service
+PRODUCT -.->|PostgreSQL| PSQL_Product[(Postgres)]
+PRODUCT -->|Service Discovery| EUREKA
+
+%% Order Service
+ORDER -.->|PostgreSQL| PSQL_Order[(Postgres)]
+ORDER -->|Service Discovery| EUREKA
+
+%% Payment Service
+PAYMENT -.->|PostgreSQL| PSQL_Payment[(Postgres)]
+PAYMENT -->|Service Discovery| EUREKA
+
+%% Order to Payment
+ORDER -->|sync REST| PAYMENT
+
+%% Order to Kafka
+ORDER -->|async Order Confirm| KAFKA
+
+%% Payment to Kafka
+PAYMENT -->|async Payment Confirm| KAFKA
+
+%% Kafka to Notification
+KAFKA --> NOTIFICATION
+
+%% Notification Service
+NOTIFICATION -.->|MongoDB| MDB_Notification[(MongoDB)]
+NOTIFICATION -->|Service Discovery| EUREKA
+
+%% Config and Discovery
+GW --> EUREKA
+EUREKA --> CONFIG[Config Server]
+
+%% Zipkin
+CUSTOMER -.->|Tracing| ZIPKIN
+PRODUCT -.->|Tracing| ZIPKIN
+ORDER -.->|Tracing| ZIPKIN
+PAYMENT -.->|Tracing| ZIPKIN
+NOTIFICATION -.->|Tracing| ZIPKIN
+
+%% Definitions
+classDef db fill:#f9f,stroke:#333,stroke-width:1px;
+class MDB_Customer,MDB_Notification,PSQL_Product,PSQL_Order,PSQL_Payment db;
+
+
 
 ## Technologies Used
 
