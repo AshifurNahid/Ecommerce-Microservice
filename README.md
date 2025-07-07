@@ -25,85 +25,49 @@ A distributed, event-driven ecommerce platform built with Spring Boot and Spring
 graph TD
 
 %% Frontend
-A[Angular Frontend] -->|HTTP| GW(API Gateway)
+A[Angular Frontend] -->|HTTP| GW[API Gateway]
 
-%% API Gateway routing
-GW -->|/customers| CUSTOMER
-GW -->|/products| PRODUCT
-GW -->|/orders| ORDER
+%% API Gateway routes
+GW -->|/customers| CUSTOMER[Customer Service]
+GW -->|/products| PRODUCT[Product Service]
+GW -->|/orders| ORDER[Order Service]
 
 %% Customer Service
-CUSTOMER -.->|MongoDB| MDB_Customer[(MongoDB)]
-CUSTOMER -->|Service Discovery| EUREKA
+CUSTOMER -->|MongoDB| MDB_Customer[(MongoDB)]
+CUSTOMER --> EUREKA
 
 %% Product Service
-PRODUCT -.->|PostgreSQL| PSQL_Product[(Postgres)]
-PRODUCT -->|Service Discovery| EUREKA
+PRODUCT -->|Postgres| PSQL_Product[(Postgres)]
+PRODUCT --> EUREKA
 
 %% Order Service
-ORDER -.->|PostgreSQL| PSQL_Order[(Postgres)]
-ORDER -->|Service Discovery| EUREKA
+ORDER -->|Postgres| PSQL_Order[(Postgres)]
+ORDER --> EUREKA
+ORDER -->|Sync REST| PAYMENT[Payment Service]
+ORDER -->|Async| KAFKA[Kafka Broker]
 
 %% Payment Service
-PAYMENT -.->|PostgreSQL| PSQL_Payment[(Postgres)]
-PAYMENT -->|Service Discovery| EUREKA
-
-%% Order to Payment
-ORDER -->|sync REST| PAYMENT
-
-%% Order to Kafka
-ORDER -->|async Order Confirm| KAFKA
-
-%% Payment to Kafka
-PAYMENT -->|async Payment Confirm| KAFKA
+PAYMENT -->|Postgres| PSQL_Payment[(Postgres)]
+PAYMENT --> EUREKA
+PAYMENT -->|Async| KAFKA
 
 %% Kafka to Notification
-KAFKA --> NOTIFICATION
+KAFKA --> NOTIFICATION[Notification Service]
+NOTIFICATION -->|MongoDB| MDB_Notification[(MongoDB)]
+NOTIFICATION --> EUREKA
 
-%% Notification Service
-NOTIFICATION -.->|MongoDB| MDB_Notification[(MongoDB)]
-NOTIFICATION -->|Service Discovery| EUREKA
-
-%% Config and Discovery
-GW --> EUREKA
+%% Discovery and Config
+GW --> EUREKA[Eureka Server]
 EUREKA --> CONFIG[Config Server]
 
-%% Zipkin
-CUSTOMER -.->|Tracing| ZIPKIN
-PRODUCT -.->|Tracing| ZIPKIN
-ORDER -.->|Tracing| ZIPKIN
-PAYMENT -.->|Tracing| ZIPKIN
-NOTIFICATION -.->|Tracing| ZIPKIN
-
-%% Definitions
-classDef db fill:#f9f,stroke:#333,stroke-width:1px;
-class MDB_Customer,MDB_Notification,PSQL_Product,PSQL_Order,PSQL_Payment db;
+%% Distributed Tracing
+CUSTOMER -.-> ZIPKIN[(Zipkin)]
+PRODUCT -.-> ZIPKIN
+ORDER -.-> ZIPKIN
+PAYMENT -.-> ZIPKIN
+NOTIFICATION -.-> ZIPKIN
 
 
-
-## Technologies Used
-
-* **Java 21**
-* **Spring Boot**
-* **Spring Cloud (Eureka, Config Server, API Gateway)**
-* **Apache Kafka**
-* **OpenFeign & RestTemplate**
-* **Zipkin & Spring Actuator**
-* **Keycloak**
-* **Docker & Docker Compose**
-
-## Getting Started
-
-### Prerequisites
-
-* Docker & Docker Compose installed
-* Java 21
-* Maven
-
-### Running the Project
-
-```bash
-docker-compose up --build
 ```
 
 This will spin up:
