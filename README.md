@@ -19,7 +19,7 @@ A distributed, event-driven ecommerce platform built with Spring Boot and Spring
 
 ## Architecture
 
-## 🗺️ Architecture Diagram (Mermaid)
+## 🗺️ Architecture Diagram 
 
 ```mermaid
 flowchart TD
