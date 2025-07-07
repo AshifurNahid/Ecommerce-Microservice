@@ -35,7 +35,7 @@ graph TD
 
 ## Technologies Used
 
-* **Java 17**
+* **Java 21**
 * **Spring Boot**
 * **Spring Cloud (Eureka, Config Server, API Gateway)**
 * **Apache Kafka**
@@ -49,7 +49,7 @@ graph TD
 ### Prerequisites
 
 * Docker & Docker Compose installed
-* Java 17
+* Java 21
 * Maven
 
 ### Running the Project
@@ -69,12 +69,6 @@ This will spin up:
 
 Each service will register automatically with Eureka.
 
-### Access URLs
-
-* API Gateway: `http://localhost:8080`
-* Eureka: `http://localhost:8761`
-* Zipkin: `http://localhost:9411`
-* Keycloak: `http://localhost:8081`
 
 ### Build and Run Individually
 
