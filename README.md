@@ -22,50 +22,84 @@ A distributed, event-driven ecommerce platform built with Spring Boot and Spring
 ## 🗺️ Architecture Diagram (Mermaid)
 
 ```mermaid
-graph TD
+flowchart LR
+    subgraph Public_Network
+        ANGULAR[Angular Frontend]
+    end
 
-%% Frontend
-A[Angular Frontend] -->|HTTP| GW[API Gateway]
+    subgraph Private_Network
+        GW[API Gateway]
 
-%% API Gateway routes
-GW -->|/customers| CUSTOMER[Customer Service]
-GW -->|/products| PRODUCT[Product Service]
-GW -->|/orders| ORDER[Order Service]
+        CUSTOMER[Customer Service]
+        PRODUCT[Product Service]
+        ORDER[Order Service]
+        PAYMENT[Payment Service]
+        NOTIFICATION[Notification Service]
+        KAFKA[Kafka Message Broker]
+        ZIPKIN[Zipkin]
+        EUREKA[Eureka Server]
+        CONFIG[Config Server]
+        
+        MONGO_CUST[(MongoDB)]
+        MONGO_NOTI[(MongoDB)]
+        POSTGRES_PROD[(Postgres)]
+        POSTGRES_ORD[(Postgres)]
+        POSTGRES_PAY[(Postgres)]
+    end
 
-%% Customer Service
-CUSTOMER -->|MongoDB| MDB_Customer[(MongoDB)]
-CUSTOMER --> EUREKA
+    %% public network to gateway
+    ANGULAR -- HTTP --> GW
 
-%% Product Service
-PRODUCT -->|Postgres| PSQL_Product[(Postgres)]
-PRODUCT --> EUREKA
+    %% API GW routes
+    GW -- /customers --> CUSTOMER
+    GW -- /products --> PRODUCT
+    GW -- /orders --> ORDER
 
-%% Order Service
-ORDER -->|Postgres| PSQL_Order[(Postgres)]
-ORDER --> EUREKA
-ORDER -->|Sync REST| PAYMENT[Payment Service]
-ORDER -->|Async| KAFKA[Kafka Broker]
+    %% Customer
+    CUSTOMER -- stores --> MONGO_CUST
+    CUSTOMER -.-> EUREKA
 
-%% Payment Service
-PAYMENT -->|Postgres| PSQL_Payment[(Postgres)]
-PAYMENT --> EUREKA
-PAYMENT -->|Async| KAFKA
+    %% Product
+    PRODUCT -- stores --> POSTGRES_PROD
+    PRODUCT -.-> EUREKA
 
-%% Kafka to Notification
-KAFKA --> NOTIFICATION[Notification Service]
-NOTIFICATION -->|MongoDB| MDB_Notification[(MongoDB)]
-NOTIFICATION --> EUREKA
+    %% Order
+    ORDER -- stores --> POSTGRES_ORD
+    ORDER -.-> EUREKA
+    ORDER -- Sync REST --> PAYMENT
+    ORDER -- Async Order Confirm --> KAFKA
 
-%% Discovery and Config
-GW --> EUREKA[Eureka Server]
-EUREKA --> CONFIG[Config Server]
+    %% Payment
+    PAYMENT -- stores --> POSTGRES_PAY
+    PAYMENT -.-> EUREKA
+    PAYMENT -- Async Payment Confirm --> KAFKA
 
-%% Distributed Tracing
-CUSTOMER -.-> ZIPKIN[(Zipkin)]
-PRODUCT -.-> ZIPKIN
-ORDER -.-> ZIPKIN
-PAYMENT -.-> ZIPKIN
-NOTIFICATION -.-> ZIPKIN
+    %% Kafka to Notification
+    KAFKA -- events --> NOTIFICATION
+    NOTIFICATION -- stores --> MONGO_NOTI
+    NOTIFICATION -.-> EUREKA
+
+    %% Config + Eureka
+    GW -.-> EUREKA
+    EUREKA -- config --> CONFIG
+
+    %% Distributed tracing
+    CUSTOMER -.-> ZIPKIN
+    PRODUCT -.-> ZIPKIN
+    ORDER -.-> ZIPKIN
+    PAYMENT -.-> ZIPKIN
+    NOTIFICATION -.-> ZIPKIN
+
+    %% Style to match dashed/dotted lines in PNG
+    classDef dashed stroke-dasharray: 5 5
+    GW -.-> EUREKA:::dashed
+    CUSTOMER -.-> EUREKA:::dashed
+    PRODUCT -.-> EUREKA:::dashed
+    ORDER -.-> EUREKA:::dashed
+    PAYMENT -.-> EUREKA:::dashed
+    NOTIFICATION -.-> EUREKA:::dashed
+    EUREKA -- config --> CONFIG:::dashed
+
 
 
 ```
