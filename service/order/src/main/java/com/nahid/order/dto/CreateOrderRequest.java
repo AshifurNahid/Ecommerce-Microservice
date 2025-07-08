@@ -19,7 +19,7 @@ import java.util.UUID;
 public class CreateOrderRequest {
 
     @NotNull(message = "Customer ID is required")
-    private UUID customerId;
+    private String customerId;
 
     @NotBlank(message = "Currency is required")
     private String currency;
@@ -28,7 +28,7 @@ public class CreateOrderRequest {
     @NotNull(message = "Shipping address is required")
     private ShippingAddressDto shippingAddress;
 
-    @NotEmpty(message = "Order items cannot be empty")
     @Valid
+    @NotEmpty(message = "Order items cannot be empty")
     private List<CreateOrderItemRequest> orderItems;
 }

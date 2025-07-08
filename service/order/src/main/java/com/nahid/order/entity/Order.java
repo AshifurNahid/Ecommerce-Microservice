@@ -28,11 +28,12 @@ public class Order {
     @Column(name = "order_id")
     UUID orderId;
 
+
     @Column(name = "order_number", nullable = false, unique = true)
     String orderNumber;
 
     @Column(name = "customer_id", nullable = false)
-    UUID customerId;
+    String customerId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

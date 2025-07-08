@@ -1,8 +1,6 @@
 package com.nahid.product.service.Impl;
 
-import com.nahid.product.dto.CreateProductRequestDto;
-import com.nahid.product.dto.ProductResponseDto;
-import com.nahid.product.dto.UpdateProductRequestDto;
+import com.nahid.product.dto.*;
 import com.nahid.product.entity.Category;
 import com.nahid.product.entity.Product;
 import com.nahid.product.exception.DuplicateResourceException;
@@ -20,7 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -221,4 +223,78 @@ public class ProductServiceImpl implements ProductService {
         log.debug("Product availability check result: {}", isAvailable);
         return isAvailable;
     }
+
+
+    @Override
+    public PurchaseProductResponseDto processPurchase(PurchaseProductRequestDto request) {
+        List<Long> productIds = request.getItems().stream()
+                .map(PurchaseProductItemDto::getProductId)
+                .collect(Collectors.toList());
+
+        List<Product> products = productRepository.findAllById(productIds);
+        Map<Long, Product> productsById = new HashMap<>();
+        for (Product product : products) {
+            productsById.put(product.getId(), product);
+        }
+        List<PurchaseProductItemResultDto> itemResults = new ArrayList<>();
+        boolean allProductsAvailable = true;
+
+        for (PurchaseProductItemDto item : request.getItems()) {
+            Product product = productsById.get(item.getProductId());
+            PurchaseProductItemResultDto result = buildResultItem(item, product);
+            itemResults.add(result);
+            if (!result.isAvailable()) {
+                allProductsAvailable = false;
+            }
+        }
+
+        if (allProductsAvailable) {
+            request.getItems().forEach(item -> {
+                Product product = productsById.get(item.getProductId());
+                int newStock = product.getStockQuantity() - item.getQuantity();
+                product.setStockQuantity(newStock);
+                productRepository.save(product);
+            });
+        }
+
+        return PurchaseProductResponseDto.builder()
+                .success(allProductsAvailable)
+                .message(allProductsAvailable ? "All products reserved successfully" : "One or more products are unavailable")
+                .orderReference(request.getOrderReference())
+                .items(itemResults)
+                .build();
+    }
+
+    private PurchaseProductItemResultDto buildResultItem(PurchaseProductItemDto item, Product product) {
+        if (product == null) {
+            return createUnavailableResult(item, "Product not found");
+        }
+
+        boolean isAvailable = product.getIsActive() && product.getStockQuantity() >= item.getQuantity();
+        String message = "";
+        if (!isAvailable) {
+            message = product.getIsActive() ? "Insufficient stock available" : "Product is inactive";
+        }
+
+        return PurchaseProductItemResultDto.builder()
+                .productId(product.getId())
+                .productName(product.getName())
+                .sku(product.getSku())
+                .price(product.getPrice())
+                .requestedQuantity(item.getQuantity())
+                .availableQuantity(product.getStockQuantity())
+                .available(isAvailable)
+                .message(message)
+                .build();
+    }
+
+    private PurchaseProductItemResultDto createUnavailableResult(PurchaseProductItemDto item, String message) {
+        return PurchaseProductItemResultDto.builder()
+                .productId(item.getProductId())
+                .requestedQuantity(item.getQuantity())
+                .available(false)
+                .message(message)
+                .build();
+    }
+
 }

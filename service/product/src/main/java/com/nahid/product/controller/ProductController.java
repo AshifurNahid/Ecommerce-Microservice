@@ -1,8 +1,6 @@
 package com.nahid.product.controller;
 
-import com.nahid.product.dto.CreateProductRequestDto;
-import com.nahid.product.dto.ProductResponseDto;
-import com.nahid.product.dto.UpdateProductRequestDto;
+import com.nahid.product.dto.*;
 import com.nahid.product.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +29,13 @@ public class ProductController {
         log.info("Received request to create product with SKU: {}", request.getSku());
         ProductResponseDto response = productService.createProduct(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/purchase")
+    public ResponseEntity<PurchaseProductResponseDto> purchaseProduct(@Valid @RequestBody PurchaseProductRequestDto request) {
+        log.info("Received purchase request for order reference: {}", request.getOrderReference());
+        PurchaseProductResponseDto response = productService.processPurchase(request);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
