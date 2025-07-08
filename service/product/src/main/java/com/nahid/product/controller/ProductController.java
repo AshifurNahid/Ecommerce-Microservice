@@ -1,8 +1,6 @@
 package com.nahid.product.controller;
 
-import com.nahid.product.dto.CreateProductRequestDto;
-import com.nahid.product.dto.ProductResponseDto;
-import com.nahid.product.dto.UpdateProductRequestDto;
+import com.nahid.product.dto.*;
 import com.nahid.product.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,22 +24,18 @@ public class ProductController {
 
     private final ProductService productService;
 
-    ///  Purchase Order API
-    /// This API allows users to manage products in the system, including creating, retrieving, updating, and deleting products.
-    /// It also supports searching for products based on various criteria and checking product availability.
-    /// This API is designed to handle product-related operations in a paginated manner, ensuring efficient data retrieval and management.
-
-
-
-
-
-
-
     @PostMapping
     public ResponseEntity<ProductResponseDto> createProduct(@Valid @RequestBody CreateProductRequestDto request) {
         log.info("Received request to create product with SKU: {}", request.getSku());
         ProductResponseDto response = productService.createProduct(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/purchase")
+    public ResponseEntity<PurchaseProductResponseDto> purchaseProduct(@Valid @RequestBody PurchaseProductRequestDto request) {
+        log.info("Received purchase request for order reference: {}", request.getOrderReference());
+        PurchaseProductResponseDto response = productService.processPurchase(request);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
