@@ -18,23 +18,18 @@ public class ProductClient {
     private String baseUrl ;
 
     private final RestTemplate restTemplate;
-
-    public String getProductById(String productId) {
-        String url = baseUrl + "/api/v1/products/" + productId;
-        return restTemplate.getForObject(url, String.class);
-    }
-
-
     public PurchaseProductResponseDto purchaseProduct(PurchaseProductRequestDto request) {
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
         HttpEntity<PurchaseProductRequestDto> entity = new HttpEntity<>(request, headers);
-        ParameterizedTypeReference<PurchaseProductResponseDto> responseType = new ParameterizedTypeReference<>() {};
+       // ParameterizedTypeReference<PurchaseProductResponseDto> responseType = new ParameterizedTypeReference<>() {};
+
+        // ParameterizedTypeReference is needed when the response type is not known at compile time also for the list of objects, map, etc.
         ResponseEntity< PurchaseProductResponseDto> responseEntity = restTemplate.exchange(
                 baseUrl + "/api/v1/products/purchase",
                 HttpMethod.POST,
                 entity,
-                responseType
+                PurchaseProductResponseDto.class
         );
         if (responseEntity.getStatusCode() == HttpStatus.OK) {
             return responseEntity.getBody();

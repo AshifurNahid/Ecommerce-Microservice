@@ -39,10 +39,8 @@ public class OrderServiceImpl implements OrderService {
         log.info("Creating order for customer: {}", request.getCustomerId());
 
         try {
-            // Validate customer
             customerValidationService.validateCustomerForOrder(request.getCustomerId());
 
-            // Purchase products
             PurchaseProductResponseDto purchaseResponse = productPurchaseService.purchaseProducts(request);
 
             if (purchaseResponse == null || !purchaseResponse.isSuccess()) {
