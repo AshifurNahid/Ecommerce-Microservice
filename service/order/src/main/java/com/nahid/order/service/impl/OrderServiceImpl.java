@@ -1,9 +1,7 @@
 package com.nahid.order.service.impl;
 
 import com.nahid.order.client.CustomerClient;
-import com.nahid.order.dto.CreateOrderRequest;
-import com.nahid.order.dto.CustomerResponseDto;
-import com.nahid.order.dto.OrderDto;
+import com.nahid.order.dto.*;
 import com.nahid.order.entity.Order;
 import com.nahid.order.entity.OrderItem;
 import com.nahid.order.enums.CustomerStatus;
@@ -44,6 +42,11 @@ public class OrderServiceImpl implements OrderService {
         try {
             validateCustomerForOrder(request.getCustomerId());
 
+            PurchaseProductResponseDto purchaseResponse = purchaseProducts(request);
+
+
+
+
             Order order = orderMapper.toEntity(request);
             order.setOrderNumber(generateOrderNumber());
             order.setStatus(OrderStatus.PENDING);
@@ -78,6 +81,18 @@ public class OrderServiceImpl implements OrderService {
             log.error("Error creating order for customer: {}", request.getCustomerId(), e);
             throw new OrderProcessingException("Failed to create order", e);
         }
+    }
+
+    private PurchaseProductResponseDto purchaseProducts(CreateOrderRequest request) {
+        PurchaseProductRequestDto purchaseRequest = PurchaseProductRequestDto.builder()
+                .items(request.getOrderItems().stream()
+                        .map(item -> PurchaseProductItemDto.builder()
+                                .productId(item.getProductId())
+                                .quantity(item.getQuantity())
+                                .unitPrice(item.getUnitPrice())
+                                .build())
+                        .collect(Collectors.toList()))
+                .build();
     }
 
     private void validateCustomerForOrder(@NotNull(message = "Customer ID is required") String customerId) {
