@@ -1,18 +1,14 @@
 package com.nahid.order.service.impl;
 
-import com.nahid.order.client.CustomerClient;
-import com.nahid.order.client.ProductClient;
 import com.nahid.order.dto.*;
 import com.nahid.order.entity.Order;
 import com.nahid.order.entity.OrderItem;
-import com.nahid.order.enums.CustomerStatus;
 import com.nahid.order.enums.OrderStatus;
 import com.nahid.order.exception.OrderNotFoundException;
 import com.nahid.order.exception.OrderProcessingException;
 import com.nahid.order.mapper.OrderMapper;
 import com.nahid.order.repository.OrderRepository;
-import com.nahid.order.service.OrderService;
-import jakarta.validation.constraints.NotNull;
+import com.nahid.order.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -22,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -34,50 +29,34 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
-    private final CustomerClient customerClient;
-    private final ProductClient productClient;
-
+    private final CustomerValidationService customerValidationService;
+    private final ProductPurchaseService productPurchaseService;
+    private final OrderStatusService orderStatusService;
+    private final OrderNumberService orderNumberService;
 
     @Override
     public OrderDto createOrder(CreateOrderRequest request) {
         log.info("Creating order for customer: {}", request.getCustomerId());
 
         try {
-            validateCustomerForOrder(request.getCustomerId());
-            PurchaseProductResponseDto purchaseResponse = purchaseProducts(request);
+            // Validate customer
+            customerValidationService.validateCustomerForOrder(request.getCustomerId());
+
+            // Purchase products
+            PurchaseProductResponseDto purchaseResponse = productPurchaseService.purchaseProducts(request);
 
             if (purchaseResponse == null || !purchaseResponse.isSuccess()) {
-                StringBuilder errorBuilder = new StringBuilder();
-
-                if (purchaseResponse != null) {
-                    errorBuilder.append(purchaseResponse.getMessage()).append(": ");
-                    if (purchaseResponse.getItems() != null) {
-                        List<String> itemErrors = purchaseResponse.getItems().stream()
-                                .filter(item -> !item.isAvailable())
-                                .map(item -> String.format("Product %s (ID: %d, SKU: %s) - %s (Requested: %d, Available: %d)",
-                                        item.getProductName(),
-                                        item.getProductId(),
-                                        item.getSku(),
-                                        item.getMessage(),
-                                        item.getRequestedQuantity(),
-                                        item.getAvailableQuantity()))
-                                .toList();
-
-                        errorBuilder.append(String.join("; ", itemErrors));
-                    }
-                } else {
-                    errorBuilder.append("Failed to get response from product service");
-                }
-
-                String errorMessage = errorBuilder.toString();
+                String errorMessage = productPurchaseService.formatPurchaseError(purchaseResponse);
                 log.error("Product purchase failed: {}", errorMessage);
                 throw new OrderProcessingException("Cannot create order: " + errorMessage);
             }
 
+            // Create order entity
             Order order = orderMapper.toEntity(request);
-            order.setOrderNumber(generateOrderNumber());
+            order.setOrderNumber(orderNumberService.generateOrderNumber());
             order.setStatus(OrderStatus.PENDING);
 
+            // Calculate order items and totals
             List<OrderItem> orderItems = request.getOrderItems().stream()
                     .map(itemRequest -> {
                         OrderItem item = orderMapper.toEntity(itemRequest);
@@ -92,7 +71,6 @@ public class OrderServiceImpl implements OrderService {
 
             order.setTotalAmount(totalAmount);
 
-            //orderItems.forEach(order::addOrderItem);
             for (OrderItem item : orderItems) {
                 order.addOrderItem(item);
             }
@@ -108,48 +86,6 @@ public class OrderServiceImpl implements OrderService {
             log.error("Error creating order for customer: {}", request.getCustomerId(), e);
             throw new OrderProcessingException("Failed to create order", e);
         }
-    }
-
-
-    // Method to call product service
-    private PurchaseProductResponseDto purchaseProducts(CreateOrderRequest request) {
-        String orderReference = generateOrderNumber();
-
-        List<PurchaseProductItemDto> items = request.getOrderItems().stream()
-                .map(item -> PurchaseProductItemDto.builder()
-                        .productId(item.getProductId())
-                        .quantity(item.getQuantity())
-                        .build())
-                .collect(Collectors.toList());
-
-        PurchaseProductRequestDto purchaseRequest = PurchaseProductRequestDto.builder()
-                .orderReference(orderReference)
-                .items(items)
-                .build();
-
-        log.info("Calling product service to purchase products for order reference: {}", orderReference);
-        return productClient.purchaseProduct(purchaseRequest);
-    }
-
-    private void validateCustomerForOrder(@NotNull(message = "Customer ID is required") String customerId) {
-
-
-        Optional<CustomerResponseDto> customerResponseDto = customerClient.getCustomerById(customerId);
-        if (customerResponseDto.isEmpty()) {
-            log.error("Customer not found with ID: {}", customerId);
-            throw new OrderProcessingException("Customer not found with ID: " + customerId);
-        }
-        if (CustomerStatus.SUSPENDED == customerResponseDto.get().getStatus()) {
-            log.error("Customer with ID: {} is Suspended", customerId);
-            throw new OrderProcessingException("Customer is Suspended");
-        }
-        log.debug("Customer with ID: {} is valid and active", customerId);
-
-        if (CustomerStatus.INACTIVE == customerResponseDto.get().getStatus() ) {
-            log.error("Customer with ID: {} is Inactive", customerId);
-            throw new OrderProcessingException("Customer is Inactive");
-        }
-
     }
 
     @Override
@@ -199,7 +135,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with ID: " + orderId));
 
-        validateStatusTransition(order.getStatus(), status);
+        orderStatusService.validateStatusTransition(order.getStatus(), status);
 
         order.setStatus(status);
         Order savedOrder = orderRepository.save(order);
@@ -213,17 +149,20 @@ public class OrderServiceImpl implements OrderService {
     public void cancelOrder(UUID orderId) {
         log.info("Cancelling order with ID: {}", orderId);
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException("Order not found with ID: " + orderId));
+        try {
+            Order order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new OrderNotFoundException("Order not found with ID: " + orderId));
 
-        if (order.getStatus() == OrderStatus.DELIVERED || order.getStatus() == OrderStatus.CANCELLED) {
-            throw new OrderProcessingException("Cannot cancel order with status: " + order.getStatus());
+            orderStatusService.validateCancellation(order.getStatus());
+
+            order.setStatus(OrderStatus.CANCELLED);
+            orderRepository.save(order);
+
+            log.info("Order cancelled successfully with ID: {}", orderId);
+        } catch (OrderProcessingException e) {
+            log.error("Failed to cancel order with ID: {} - {}", orderId, e.getMessage());
+            throw e;
         }
-
-        order.setStatus(OrderStatus.CANCELLED);
-        orderRepository.save(order);
-
-        log.info("Order cancelled successfully with ID: {}", orderId);
     }
 
     @Override
@@ -244,32 +183,5 @@ public class OrderServiceImpl implements OrderService {
         log.debug("Counting orders for customer: {} with status: {}", customerId, status);
 
         return orderRepository.countByCustomerIdAndStatus(customerId, status);
-    }
-
-    private String generateOrderNumber() {
-        String prefix = "ORD";
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        return prefix + "-" + timestamp;
-    }
-
-    private void validateStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
-        if (currentStatus == OrderStatus.PENDING && newStatus == OrderStatus.DELIVERED) {
-            throw new OrderProcessingException("Cannot deliver an order that is still pending");
-        }
-        if (currentStatus == OrderStatus.PENDING && newStatus == OrderStatus.CANCELLED) {
-            throw new OrderProcessingException("Cannot cancel an order that is still pending");
-        }
-        if (currentStatus == OrderStatus.PENDING) {
-            throw new OrderProcessingException("Cannot change status of pending order to " + newStatus);
-        }
-        if (currentStatus == OrderStatus.SHIPPED && newStatus != OrderStatus.DELIVERED) {
-            throw new OrderProcessingException("Cannot change status of shipped order to " + newStatus);
-        }
-        if (currentStatus == OrderStatus.CANCELLED && newStatus != OrderStatus.CANCELLED) {
-            throw new OrderProcessingException("Cannot change status of cancelled order");
-        }
-        if (currentStatus == OrderStatus.DELIVERED && newStatus != OrderStatus.REFUNDED) {
-            throw new OrderProcessingException("Can only refund delivered orders");
-        }
     }
 }
