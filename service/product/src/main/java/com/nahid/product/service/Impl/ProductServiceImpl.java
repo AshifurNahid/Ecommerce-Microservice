@@ -9,56 +9,71 @@ import com.nahid.product.mapper.ProductMapper;
 import com.nahid.product.repository.CategoryRepository;
 import com.nahid.product.repository.ProductRepository;
 import com.nahid.product.service.ProductService;
+import com.nahid.product.service.InventoryService;
+import com.nahid.product.service.PurchaseService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
-
+/**
+ * Main product service that delegates to specialized services
+ * Follows SOLID principles by:
+ * - Acting as a facade to coordinate between specialized services
+ * - Delegating specific responsibilities to appropriate services
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
+    private final InventoryService inventoryService;
+    private final PurchaseService purchaseService;
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public ProductResponseDto createProduct(CreateProductRequestDto request) {
         log.info("Creating new product with SKU: {}", request.getSku());
 
-        if (productRepository.existsBySku(request.getSku())) {
-            log.error("Product with SKU {} already exists", request.getSku());
-            throw new DuplicateResourceException("Product with SKU " + request.getSku() + " already exists");
+        try {
+            if (productRepository.existsBySku(request.getSku())) {
+                log.error("Product with SKU {} already exists", request.getSku());
+                throw new DuplicateResourceException("Product with SKU " + request.getSku() + " already exists");
+            }
+
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> {
+                        log.error("Category with ID {} not found", request.getCategoryId());
+                        return new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId());
+                    });
+
+            Product product = productMapper.toEntity(request);
+            product.setCategory(category);
+            product.setIsActive(true);
+            product.setImageUrl(request.getImageUrl());
+
+            Product savedProduct = productRepository.save(product);
+            log.info("Product created successfully with ID: {}", savedProduct.getId());
+
+            return productMapper.toResponse(savedProduct);
+        } catch (DuplicateResourceException | ResourceNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error creating product with SKU: {}", request.getSku(), e);
+            throw e;
         }
-
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> {
-                    log.error("Category with ID {} not found", request.getCategoryId());
-                    return new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId());
-                });
-
-        Product product = productMapper.toEntity(request);
-        product.setCategory(category);
-        product.setIsActive(true); 
-        product.setImageUrl(request.getImageUrl()); 
-        
-        Product savedProduct = productRepository.save(product);
-        log.info("Product created successfully with ID: {}", savedProduct.getId());
-
-        return productMapper.toResponse(savedProduct);
     }
 
     @Override
@@ -125,8 +140,6 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public Page<ProductResponseDto> searchProducts(String name, String brand, BigDecimal minPrice,
                                                 BigDecimal maxPrice, Long categoryId, Pageable pageable) {
-        log.debug("Searching products with filters - name: {}, brand: {}, minPrice: {}, maxPrice: {}, categoryId: {}",
-                name, brand, minPrice, maxPrice, categoryId);
 
         Page<Product> products = productRepository.findProductsWithFilters(
                 name, brand, minPrice, maxPrice, categoryId, pageable);
@@ -152,149 +165,90 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public ProductResponseDto updateProduct(Long id, UpdateProductRequestDto request) {
         log.info("Updating product with ID: {}", id);
 
-        Product existingProduct = productRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("Product with ID {} not found", id);
-                    return new ResourceNotFoundException("Product not found with ID: " + id);
-                });
-
-        if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
+        try {
+            Product existingProduct = productRepository.findById(id)
                     .orElseThrow(() -> {
-                        log.error("Category with ID {} not found", request.getCategoryId());
-                        return new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId());
+                        log.error("Product with ID {} not found", id);
+                        return new ResourceNotFoundException("Product not found with ID: " + id);
                     });
-            existingProduct.setCategory(category);
+
+            if (request.getCategoryId() != null) {
+                Category category = categoryRepository.findById(request.getCategoryId())
+                        .orElseThrow(() -> {
+                            log.error("Category with ID {} not found", request.getCategoryId());
+                            return new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId());
+                        });
+                existingProduct.setCategory(category);
+            }
+
+            productMapper.updateProductFromRequest(request, existingProduct);
+
+            Product updatedProduct = productRepository.save(existingProduct);
+            log.info("Product updated successfully with ID: {}", updatedProduct.getId());
+
+            return productMapper.toResponse(updatedProduct);
+        } catch (ResourceNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error updating product with ID: {}", id, e);
+            throw e;
         }
-
-        productMapper.updateProductFromRequest(request, existingProduct);
-
-        Product updatedProduct = productRepository.save(existingProduct);
-        log.info("Product updated successfully with ID: {}", updatedProduct.getId());
-
-        return productMapper.toResponse(updatedProduct);
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteProduct(Long id) {
         log.info("Deleting product with ID: {}", id);
 
-        if (!productRepository.existsById(id)) {
-            log.error("Product with ID {} not found", id);
-            throw new ResourceNotFoundException("Product not found with ID: " + id);
-        }
+        try {
+            if (!productRepository.existsById(id)) {
+                log.error("Product with ID {} not found", id);
+                throw new ResourceNotFoundException("Product not found with ID: " + id);
+            }
 
-        productRepository.deleteById(id);
-        log.info("Product deleted successfully with ID: {}", id);
+            productRepository.deleteById(id);
+            log.info("Product deleted successfully with ID: {}", id);
+        } catch (ResourceNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error deleting product with ID: {}", id, e);
+            throw e;
+        }
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public ProductResponseDto updateStock(Long id, Integer newStock) {
-        log.info("Updating stock for product ID: {} to quantity: {}", id, newStock);
-
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("Product with ID {} not found", id);
-                    return new ResourceNotFoundException("Product not found with ID: " + id);
-                });
-
-        product.setStockQuantity(newStock);
-        Product updatedProduct = productRepository.save(product);
-
-        log.info("Stock updated successfully for product ID: {}", id);
-        return productMapper.toResponse(updatedProduct);
+        log.info("Delegating stock update to InventoryService for product ID: {}", id);
+        try {
+            return inventoryService.updateStock(id, newStock);
+        } catch (Exception e) {
+            log.error("Error updating stock for product ID: {}", id, e);
+            throw e;
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean isProductAvailable(Long id, Integer requiredQuantity) {
-        log.debug("Checking availability for product ID: {} with required quantity: {}", id, requiredQuantity);
-
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("Product with ID {} not found", id);
-                    return new ResourceNotFoundException("Product not found with ID: " + id);
-                });
-
-        boolean isAvailable = product.getIsActive() && product.getStockQuantity() >= requiredQuantity;
-        log.debug("Product availability check result: {}", isAvailable);
-        return isAvailable;
+        log.debug("Delegating availability check to InventoryService for product ID: {}", id);
+        return inventoryService.isProductAvailable(id, requiredQuantity);
     }
-
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public PurchaseProductResponseDto processPurchase(PurchaseProductRequestDto request) {
-        List<Long> productIds = request.getItems().stream()
-                .map(PurchaseProductItemDto::getProductId)
-                .collect(Collectors.toList());
-
-        List<Product> products = productRepository.findAllById(productIds);
-        Map<Long, Product> productsById = new HashMap<>();
-        for (Product product : products) {
-            productsById.put(product.getId(), product);
+        log.info("Delegating purchase processing to PurchaseService");
+        try {
+            return purchaseService.processPurchase(request);
+        } catch (Exception e) {
+            log.error("Error processing purchase: {}", e.getMessage(), e);
+            throw e;
         }
-        List<PurchaseProductItemResultDto> itemResults = new ArrayList<>();
-        boolean allProductsAvailable = true;
-
-        for (PurchaseProductItemDto item : request.getItems()) {
-            Product product = productsById.get(item.getProductId());
-            PurchaseProductItemResultDto result = buildResultItem(item, product);
-            itemResults.add(result);
-            if (!result.isAvailable()) {
-                allProductsAvailable = false;
-            }
-        }
-
-        if (allProductsAvailable) {
-            request.getItems().forEach(item -> {
-                Product product = productsById.get(item.getProductId());
-                int newStock = product.getStockQuantity() - item.getQuantity();
-                product.setStockQuantity(newStock);
-                productRepository.save(product);
-            });
-        }
-
-        return PurchaseProductResponseDto.builder()
-                .success(allProductsAvailable)
-                .message(allProductsAvailable ? "All products reserved successfully" : "One or more products are unavailable")
-                .orderReference(request.getOrderReference())
-                .items(itemResults)
-                .build();
-    }
-
-    private PurchaseProductItemResultDto buildResultItem(PurchaseProductItemDto item, Product product) {
-        if (product == null) {
-            return createUnavailableResult(item, "Product not found");
-        }
-
-        boolean isAvailable = product.getIsActive() && product.getStockQuantity() >= item.getQuantity();
-        String message = "";
-        if (!isAvailable) {
-            message = product.getIsActive() ? "Insufficient stock available" : "Product is inactive";
-        }
-
-        return PurchaseProductItemResultDto.builder()
-                .productId(product.getId())
-                .productName(product.getName())
-                .sku(product.getSku())
-                .price(product.getPrice())
-                .requestedQuantity(item.getQuantity())
-                .availableQuantity(product.getStockQuantity())
-                .available(isAvailable)
-                .message(message)
-                .build();
-    }
-
-    private PurchaseProductItemResultDto createUnavailableResult(PurchaseProductItemDto item, String message) {
-        return PurchaseProductItemResultDto.builder()
-                .productId(item.getProductId())
-                .requestedQuantity(item.getQuantity())
-                .available(false)
-                .message(message)
-                .build();
     }
 
 }
