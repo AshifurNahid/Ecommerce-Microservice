@@ -1,6 +1,7 @@
 package com.nahid.order.service.impl;
 
 import com.nahid.order.client.CustomerClient;
+import com.nahid.order.client.ProductClient;
 import com.nahid.order.dto.*;
 import com.nahid.order.entity.Order;
 import com.nahid.order.entity.OrderItem;
@@ -34,6 +35,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
     private final CustomerClient customerClient;
+    private final ProductClient productClient;
+
 
     @Override
     public OrderDto createOrder(CreateOrderRequest request) {
@@ -41,11 +44,35 @@ public class OrderServiceImpl implements OrderService {
 
         try {
             validateCustomerForOrder(request.getCustomerId());
-
             PurchaseProductResponseDto purchaseResponse = purchaseProducts(request);
 
+            if (purchaseResponse == null || !purchaseResponse.isSuccess()) {
+                StringBuilder errorBuilder = new StringBuilder();
 
+                if (purchaseResponse != null) {
+                    errorBuilder.append(purchaseResponse.getMessage()).append(": ");
+                    if (purchaseResponse.getItems() != null) {
+                        List<String> itemErrors = purchaseResponse.getItems().stream()
+                                .filter(item -> !item.isAvailable())
+                                .map(item -> String.format("Product %s (ID: %d, SKU: %s) - %s (Requested: %d, Available: %d)",
+                                        item.getProductName(),
+                                        item.getProductId(),
+                                        item.getSku(),
+                                        item.getMessage(),
+                                        item.getRequestedQuantity(),
+                                        item.getAvailableQuantity()))
+                                .toList();
 
+                        errorBuilder.append(String.join("; ", itemErrors));
+                    }
+                } else {
+                    errorBuilder.append("Failed to get response from product service");
+                }
+
+                String errorMessage = errorBuilder.toString();
+                log.error("Product purchase failed: {}", errorMessage);
+                throw new OrderProcessingException("Cannot create order: " + errorMessage);
+            }
 
             Order order = orderMapper.toEntity(request);
             order.setOrderNumber(generateOrderNumber());
@@ -83,16 +110,25 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
+
+    // Method to call product service
     private PurchaseProductResponseDto purchaseProducts(CreateOrderRequest request) {
+        String orderReference = generateOrderNumber();
+
+        List<PurchaseProductItemDto> items = request.getOrderItems().stream()
+                .map(item -> PurchaseProductItemDto.builder()
+                        .productId(item.getProductId())
+                        .quantity(item.getQuantity())
+                        .build())
+                .collect(Collectors.toList());
+
         PurchaseProductRequestDto purchaseRequest = PurchaseProductRequestDto.builder()
-                .items(request.getOrderItems().stream()
-                        .map(item -> PurchaseProductItemDto.builder()
-                                .productId(item.getProductId())
-                                .quantity(item.getQuantity())
-                                .unitPrice(item.getUnitPrice())
-                                .build())
-                        .collect(Collectors.toList()))
+                .orderReference(orderReference)
+                .items(items)
                 .build();
+
+        log.info("Calling product service to purchase products for order reference: {}", orderReference);
+        return productClient.purchaseProduct(purchaseRequest);
     }
 
     private void validateCustomerForOrder(@NotNull(message = "Customer ID is required") String customerId) {
@@ -140,7 +176,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OrderDto> getOrdersByCustomerId(UUID customerId, Pageable pageable) {
+    public Page<OrderDto> getOrdersByCustomerId(String customerId, Pageable pageable) {
         log.debug("Fetching orders for customer: {}", customerId);
 
         return orderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId, pageable)
@@ -204,7 +240,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public long getOrderCountByCustomerAndStatus(UUID customerId, OrderStatus status) {
+    public long getOrderCountByCustomerAndStatus(String customerId, OrderStatus status) {
         log.debug("Counting orders for customer: {} with status: {}", customerId, status);
 
         return orderRepository.countByCustomerIdAndStatus(customerId, status);

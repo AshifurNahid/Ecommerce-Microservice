@@ -17,7 +17,7 @@ public interface OrderService {
 
     OrderDto getOrderByOrderNumber(String orderNumber);
 
-    Page<OrderDto> getOrdersByCustomerId(UUID customerId, Pageable pageable);
+    Page<OrderDto> getOrdersByCustomerId(String customerId, Pageable pageable);
 
     Page<OrderDto> getAllOrders(Pageable pageable);
 
@@ -27,5 +27,5 @@ public interface OrderService {
 
     List<OrderDto> getOrdersByStatus(OrderStatus status);
 
-    long getOrderCountByCustomerAndStatus(UUID customerId, OrderStatus status);
+    long getOrderCountByCustomerAndStatus(String customerId, OrderStatus status);
 }

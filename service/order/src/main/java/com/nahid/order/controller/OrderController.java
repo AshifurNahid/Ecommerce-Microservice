@@ -74,7 +74,7 @@ public class OrderController {
 
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<Page<OrderDto>> getOrdersByCustomerId(
-            @PathVariable UUID customerId,
+            @PathVariable String customerId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
@@ -118,7 +118,7 @@ public class OrderController {
 
     @GetMapping("/customer/{customerId}/count")
     public ResponseEntity<Long> getOrderCountByCustomerAndStatus(
-            @PathVariable UUID customerId,
+            @PathVariable String customerId,
             @RequestParam OrderStatus status) {
 
         log.info("Counting orders for customer: {} with status: {}", customerId, status);

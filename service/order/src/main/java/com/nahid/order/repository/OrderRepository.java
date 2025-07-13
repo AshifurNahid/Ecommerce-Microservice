@@ -19,9 +19,9 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     Optional<Order> findByOrderNumber(String orderNumber);
 
-    Page<Order> findByCustomerIdOrderByCreatedAtDesc(UUID customerId, Pageable pageable);
+    Page<Order> findByCustomerIdOrderByCreatedAtDesc(String customerId, Pageable pageable);
 
-    List<Order> findByCustomerIdAndStatus(UUID customerId, OrderStatus status);
+    List<Order> findByCustomerIdAndStatus(String customerId, OrderStatus status);
 
     Page<Order> findByStatusOrderByCreatedAtDesc(OrderStatus status, Pageable pageable);
 
@@ -30,7 +30,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
                                       @Param("endDate") LocalDateTime endDate);
 
     @Query("SELECT COUNT(o) FROM Order o WHERE o.customerId = :customerId AND o.status = :status")
-    long countByCustomerIdAndStatus(@Param("customerId") UUID customerId,
+    long countByCustomerIdAndStatus(@Param("customerId") String customerId,
                                     @Param("status") OrderStatus status);
 
     boolean existsByOrderNumber(String orderNumber);
