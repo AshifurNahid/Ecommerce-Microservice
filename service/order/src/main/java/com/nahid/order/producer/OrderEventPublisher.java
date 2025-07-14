@@ -3,6 +3,7 @@ package com.nahid.order.producer;
 import com.nahid.order.dto.OrderEventDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.kafka.support.SendResult;
@@ -21,6 +22,9 @@ public class OrderEventPublisher {
 
     private final KafkaTemplate<String, OrderEventDto> kafkaTemplate;
 
+    @Value("${kafka.topic.order-notification}")
+    private String orderNotificationTopic;
+
     public void publishOrderEvent(OrderEventDto orderEvent) {
 
         try {
@@ -37,7 +41,8 @@ public class OrderEventPublisher {
 
             Message<OrderEventDto> message = MessageBuilder
                     .withPayload(orderEvent)
-                    .setHeader(KafkaHeaders.TOPIC, "order-topic")
+                    .setHeader(KafkaHeaders.TOPIC, orderNotificationTopic)
+                    .setHeader(KafkaHeaders.KEY, orderEvent.getOrderId().toString())
                     .build();
 
             CompletableFuture<SendResult<String, OrderEventDto>> future = kafkaTemplate.send(message);
