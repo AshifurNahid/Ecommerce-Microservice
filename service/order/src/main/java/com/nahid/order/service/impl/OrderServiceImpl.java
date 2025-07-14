@@ -7,6 +7,7 @@ import com.nahid.order.enums.OrderStatus;
 import com.nahid.order.exception.OrderNotFoundException;
 import com.nahid.order.exception.OrderProcessingException;
 import com.nahid.order.mapper.OrderMapper;
+import com.nahid.order.producer.OrderEventPublisher;
 import com.nahid.order.repository.OrderRepository;
 import com.nahid.order.service.*;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class OrderServiceImpl implements OrderService {
     private final ProductPurchaseService productPurchaseService;
     private final OrderStatusService orderStatusService;
     private final OrderNumberService orderNumberService;
+    private  final OrderEventPublisher orderEventPublisher;
 
     @Override
     public OrderDto createOrder(CreateOrderRequest request) {
@@ -75,10 +77,14 @@ public class OrderServiceImpl implements OrderService {
 
             Order savedOrder = orderRepository.save(order);
 
+            // Publish order created event
+            publishOrderCreatedEvent(savedOrder);
+
             log.info("Order created successfully with ID: {} and number: {}",
                     savedOrder.getOrderId(), savedOrder.getOrderNumber());
 
             return orderMapper.toDto(savedOrder);
+
 
         } catch (Exception e) {
             log.error("Error creating order for customer: {}", request.getCustomerId(), e);
@@ -181,5 +187,30 @@ public class OrderServiceImpl implements OrderService {
         log.debug("Counting orders for customer: {} with status: {}", customerId, status);
 
         return orderRepository.countByCustomerIdAndStatus(customerId, status);
+    }
+
+
+    private void publishOrderCreatedEvent(Order order) {
+        OrderEventDto orderEvent = createOrderEvent(order, OrderStatus.CONFIRMED);
+        orderEventPublisher.publishOrderEvent(orderEvent);
+    }
+
+    private void publishOrderCancelledEvent(Order order) {
+        OrderEventDto orderEvent = createOrderEvent(order, OrderStatus.CANCELLED);
+        orderEventPublisher.publishOrderEvent(orderEvent);
+    }
+
+
+
+    private OrderEventDto createOrderEvent(Order order, OrderStatus status) {
+        return OrderEventDto.builder()
+                .orderId(order.getOrderId())
+                .orderNumber(order.getOrderNumber())
+                .customerId(order.getCustomerId())
+                .status(status)
+                .totalAmount(order.getTotalAmount())
+                .createdAt(order.getCreatedAt())
+                .eventType(status == OrderStatus.CANCELLED ? "ORDER_CANCELLED" : "ORDER_CREATED")
+                .build();
     }
 }
