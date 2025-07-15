@@ -19,7 +19,7 @@ public class PaymentRequestDto {
     private UUID orderId;
 
     @NotNull(message = "Customer ID is required")
-    private UUID customerId;
+    private String customerId;
 
     @NotNull(message = "Amount is required")
     @DecimalMin(value = "0.01", message = "Amount must be greater than 0")

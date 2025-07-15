@@ -7,7 +7,6 @@ import com.nahid.payment.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -62,7 +61,7 @@ public class PaymentController {
     }
 
     @GetMapping("/customer/{customerId}")
-    public ResponseEntity<List<PaymentResponseDto>> getPaymentsByCustomerId(@PathVariable UUID customerId) {
+    public ResponseEntity<List<PaymentResponseDto>> getPaymentsByCustomerId(@PathVariable String customerId) {
         log.info("Fetching payments for customer: {}", customerId);
 
         List<PaymentResponseDto> payments = paymentService.getPaymentsByCustomerId(customerId);
@@ -90,7 +89,7 @@ public class PaymentController {
 
 
     @GetMapping("/customer/{customerId}/total")
-    public ResponseEntity<BigDecimal> getCustomerTotalPaidAmount(@PathVariable UUID customerId) {
+    public ResponseEntity<BigDecimal> getCustomerTotalPaidAmount(@PathVariable String customerId) {
         log.info("Fetching total paid amount for customer: {}", customerId);
 
         BigDecimal totalAmount = paymentService.getCustomerTotalPaidAmount(customerId);

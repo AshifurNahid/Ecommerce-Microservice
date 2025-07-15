@@ -30,7 +30,7 @@ public class Payment {
     private UUID orderId;
 
     @Column(name = "customer_id", nullable = false)
-    private UUID customerId;
+    private String customerId;
 
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;

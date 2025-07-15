@@ -1,13 +1,10 @@
 package com.nahid.payment.service;
 
-
-
 import com.nahid.payment.dto.PaymentRequestDto;
 import com.nahid.payment.dto.PaymentResponseDto;
 import com.nahid.payment.enums.PaymentStatus;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,7 +17,7 @@ public interface PaymentService {
 
     PaymentResponseDto getPaymentByOrderId(UUID orderId);
 
-    List<PaymentResponseDto> getPaymentsByCustomerId(UUID customerId);
+    List<PaymentResponseDto> getPaymentsByCustomerId(String customerId);
 
     List<PaymentResponseDto> getPaymentsByStatus(PaymentStatus status);
 
@@ -32,7 +29,7 @@ public interface PaymentService {
 
     PaymentResponseDto refundPayment(UUID paymentId, BigDecimal refundAmount);
 
-    BigDecimal getCustomerTotalPaidAmount(UUID customerId);
+    BigDecimal getCustomerTotalPaidAmount(String customerId);
 
     List<PaymentResponseDto> getRecentPayments();
 

@@ -17,13 +17,13 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
 
     Optional<Payment> findByOrderId(UUID orderId);
-    List<Payment> findByCustomerIdOrderByCreatedAtDesc(UUID customerId);
+    List<Payment> findByCustomerIdOrderByCreatedAtDesc(String customerId);
 
     List<Payment> findByStatusOrderByCreatedAtDesc(PaymentStatus status);
     Optional<Payment> findByTransactionId(String transactionId);
 
     List<Payment> findByCustomerIdAndStatusOrderByCreatedAtDesc(
-            UUID customerId,
+            String customerId,
             PaymentStatus status
     );
 
@@ -36,7 +36,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     @Query("SELECT SUM(p.amount) FROM Payment p WHERE p.customerId = :customerId AND p.status = :status")
     BigDecimal getTotalAmountByCustomerAndStatus(
-            @Param("customerId") UUID customerId,
+            @Param("customerId") String customerId,
             @Param("status") PaymentStatus status
     );
 

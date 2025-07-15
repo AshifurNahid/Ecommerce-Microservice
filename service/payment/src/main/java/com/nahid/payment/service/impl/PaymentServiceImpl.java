@@ -137,7 +137,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public BigDecimal getCustomerTotalPaidAmount(UUID customerId) {
+    public BigDecimal getCustomerTotalPaidAmount(String customerId) {
         log.info("Calculating total paid amount for customer: {}", customerId);
 
         BigDecimal totalAmount = paymentRepository.getTotalAmountByCustomerAndStatus(
@@ -254,7 +254,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PaymentResponseDto> getPaymentsByCustomerId(UUID customerId) {
+    public List<PaymentResponseDto> getPaymentsByCustomerId(String customerId) {
         log.info("Fetching payments for customer: {}", customerId);
 
         List<Payment> payments = paymentRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);

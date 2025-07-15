@@ -20,7 +20,7 @@ public class PaymentResponseDto {
 
     private UUID id;
     private UUID orderId;
-    private UUID customerId;
+    private String customerId;
     private BigDecimal amount;
     private String currency;
     private PaymentMethod paymentMethod;

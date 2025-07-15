@@ -1,18 +1,19 @@
-package com.nahid.payment.dto;
+package com.nahid.notification.dto;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.nahid.payment.enums.PaymentStatus;
-import lombok.*;
+import com.nahid.notification.enums.PaymentStatus;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class PaymentNotificationDto {
-
     private UUID paymentId;
     private UUID orderId;
     private String customerId;
@@ -28,4 +29,6 @@ public class PaymentNotificationDto {
 
     private String notificationType = "SMS";
     private String message;
+
+
 }

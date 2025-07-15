@@ -27,7 +27,7 @@ public class KafkaConfig {
     public NewTopic paymentTopic() {
         return TopicBuilder.name(paymentNotificationTopic)
                 .partitions(6)
-                .replicas(3)
+                .replicas(1)
                 .build();
     }
 

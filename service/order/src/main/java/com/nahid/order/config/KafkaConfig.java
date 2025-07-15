@@ -32,7 +32,7 @@ public class KafkaConfig {
     public NewTopic orderTopic() {
         return TopicBuilder.name(orderNotificationTopic)
                 .partitions(6)
-                .replicas(3)
+                .replicas(1)
                 .build();
     }
 
