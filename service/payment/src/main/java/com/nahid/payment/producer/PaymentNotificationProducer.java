@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
@@ -20,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class PaymentNotificationProducer {
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, PaymentNotificationDto> kafkaTemplate;
     private final PaymentMapper paymentMapper;
 
     @Value("${kafka.topic.payment-notification}")
@@ -44,10 +45,10 @@ public class PaymentNotificationProducer {
                     .withPayload(notification)
                     .setHeader("paymentId", payment.getId().toString())
                     .setHeader("paymentStatus", payment.getStatus().name())
-                    .setHeader("topic", paymentNotificationTopic)
+                    .setHeader(KafkaHeaders.TOPIC, paymentNotificationTopic)
                     .build();
 
-            CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send(message);
+            CompletableFuture<SendResult<String, PaymentNotificationDto>> future = kafkaTemplate.send(message);
 
             future.whenComplete((result, exception) -> {
                 if (exception == null) {
@@ -65,11 +66,11 @@ public class PaymentNotificationProducer {
     }
 
 
-    public void sendCustomNotification(String key, Object message) {
+    public void sendCustomNotification(String key, PaymentNotificationDto message) {
         log.info("Sending custom notification to Kafka. Key: {}, Topic: {}",
                 key, paymentNotificationTopic);
 
-        CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send(
+        CompletableFuture<SendResult<String, PaymentNotificationDto>> future = kafkaTemplate.send(
                 paymentNotificationTopic,
                 key,
                 message

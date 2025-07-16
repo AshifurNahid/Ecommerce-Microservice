@@ -20,8 +20,11 @@ public class NotificationKafkaConsumer {
 
     private final NotificationService notificationService;
 
-    @KafkaListener(topics = "${kafka.topic.payment-notification}", groupId = "${spring.kafka.consumer.group-id}")
-    public void handlePaymentNotification(
+    @KafkaListener(
+            topics = "${kafka.topic.payment-notification}",
+            groupId = "${spring.kafka.consumer.group-id}",
+            containerFactory = "paymentKafkaListenerContainerFactory"
+    )   public void handlePaymentNotification(
             ConsumerRecord<String, PaymentNotificationDto> record,
             @Payload PaymentNotificationDto paymentNotificationDto,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
@@ -34,21 +37,18 @@ public class NotificationKafkaConsumer {
 
         try {
             // Validate required fields
-            if (paymentNotificationDto.getPaymentId() == null) {
-                log.error("Payment notification missing required paymentId");
-                return;
-            }
+//            if (paymentNotificationDto.getPaymentId() == null) {
+//                log.error("Payment notification missing required paymentId");
+//                return;
+//            }
+//
+//            if (paymentNotificationDto.getCustomerId() == null || paymentNotificationDto.getCustomerId().isEmpty()) {
+//                log.error("Payment notification missing required customerId for paymentId: {}",
+//                        paymentNotificationDto.getPaymentId());
+//                return;
+//            }
 
-            if (paymentNotificationDto.getCustomerId() == null || paymentNotificationDto.getCustomerId().isEmpty()) {
-                log.error("Payment notification missing required customerId for paymentId: {}",
-                        paymentNotificationDto.getPaymentId());
-                return;
-            }
-
-            // Process the payment notification
             notificationService.processPaymentNotification(paymentNotificationDto);
-
-            // Acknowledge the message
             acknowledgment.acknowledge();
 
             log.info("Payment notification processed successfully for paymentId: {}",
@@ -67,8 +67,11 @@ public class NotificationKafkaConsumer {
         }
     }
 
-    @KafkaListener(topics = "${kafka.topic.order-notification}", groupId = "${spring.kafka.consumer.group-id}")
-    public void handleOrderNotification(
+    @KafkaListener(
+            topics = "${kafka.topic.order-notification}",
+            groupId = "${spring.kafka.consumer.group-id}",
+            containerFactory = "orderKafkaListenerContainerFactory"
+    )   public void handleOrderNotification(
             ConsumerRecord<String, OrderEventDto> record,
             @Payload OrderEventDto orderEventDto,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
@@ -81,22 +84,22 @@ public class NotificationKafkaConsumer {
 
         try {
             // Validate required fields
-            if (orderEventDto.getOrderId() == null) {
-                log.error("Order notification missing required orderId");
-                return;
-            }
-
-            if (orderEventDto.getCustomerId() == null || orderEventDto.getCustomerId().isEmpty()) {
-                log.error("Order notification missing required customerId for orderId: {}",
-                        orderEventDto.getOrderId());
-                return;
-            }
-
-            if (orderEventDto.getEventType() == null || orderEventDto.getEventType().isEmpty()) {
-                log.error("Order notification missing required eventType for orderId: {}",
-                        orderEventDto.getOrderId());
-                return;
-            }
+//            if (orderEventDto.getOrderId() == null) {
+//                log.error("Order notification missing required orderId");
+//                return;
+//            }
+//
+//            if (orderEventDto.getCustomerId() == null || orderEventDto.getCustomerId().isEmpty()) {
+//                log.error("Order notification missing required customerId for orderId: {}",
+//                        orderEventDto.getOrderId());
+//                return;
+//            }
+//
+//            if (orderEventDto.getEventType() == null || orderEventDto.getEventType().isEmpty()) {
+//                log.error("Order notification missing required eventType for orderId: {}",
+//                        orderEventDto.getOrderId());
+//                return;
+//            }
 
             // Process the order notification
             notificationService.processOrderNotification(orderEventDto);

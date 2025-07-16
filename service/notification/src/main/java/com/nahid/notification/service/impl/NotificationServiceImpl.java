@@ -99,10 +99,10 @@ public class NotificationServiceImpl implements NotificationService {
 
         try {
             // Check for duplicate notifications
-            if (isDuplicateNotification(paymentNotificationDto.getPaymentId(),ReferenceType.PAYMENT)) {
-                log.warn("Duplicate payment notification detected for payment ID: {}", paymentNotificationDto.getPaymentId());
-                return;
-            }
+//            if (isDuplicateNotification(paymentNotificationDto.getPaymentId(),ReferenceType.PAYMENT)) {
+//                log.warn("Duplicate payment notification detected for payment ID: {}", paymentNotificationDto.getPaymentId());
+//                return;
+//            }
 
             // Create notification entity
             Notification notification = notificationMapper.paymentDtoToEntity(paymentNotificationDto);
