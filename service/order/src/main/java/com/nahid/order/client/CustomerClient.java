@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 
 import java.util.Optional;
-import java.util.UUID;
 
 @FeignClient(
         name = "customer-service",
