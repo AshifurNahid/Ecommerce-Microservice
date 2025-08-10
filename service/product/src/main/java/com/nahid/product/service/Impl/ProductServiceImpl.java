@@ -55,7 +55,7 @@ public class ProductServiceImpl implements ProductService {
 
             Category category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> {
-                        log.error("Category with ID {} not found", request.getCategoryId());
+                        //log.error("Category with ID {} not found", request.getCategoryId());
                         return new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId());
                     });
 
