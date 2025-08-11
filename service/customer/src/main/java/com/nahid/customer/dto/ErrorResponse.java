@@ -1,4 +1,4 @@
-package com.nahid.customer.exception;
+package com.nahid.customer.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
