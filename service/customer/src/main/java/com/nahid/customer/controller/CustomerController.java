@@ -24,6 +24,7 @@ public class CustomerController {
 
     private final CustomerService customerService;
 
+
     @PostMapping
     public ResponseEntity<CustomerResponseDto> createCustomer(@Valid @RequestBody CustomerRequestDto customerRequest) {
         log.info("Received request to create customer with email: {}", customerRequest.getEmail());
