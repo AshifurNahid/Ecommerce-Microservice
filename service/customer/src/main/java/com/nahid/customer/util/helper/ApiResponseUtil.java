@@ -46,4 +46,16 @@ public class ApiResponseUtil {
 
         return ResponseEntity.status(httpStatus).body(response);
     }
+
+    public static <T> ResponseEntity<ApiResponse<T>> failureWithHttpStatus(String message, HttpStatus httpStatus, T data) {
+        ApiResponse<T> response = ApiResponse.<T>builder()
+                .success(false)
+                .message(message)
+                .data(data)
+                .timestamp(Instant.now())
+                .statusCode(httpStatus.value())
+                .build();
+
+        return ResponseEntity.status(httpStatus).body(response);
+    }
 }
