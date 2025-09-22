@@ -1,6 +1,9 @@
 package com.nahid.order.service.impl;
 
 import com.nahid.order.dto.*;
+import com.nahid.order.dto.request.CreateOrderRequest;
+import com.nahid.order.dto.request.OrderDto;
+import com.nahid.order.dto.response.PurchaseProductResponseDto;
 import com.nahid.order.entity.Order;
 import com.nahid.order.entity.OrderItem;
 import com.nahid.order.enums.OrderStatus;
@@ -10,6 +13,7 @@ import com.nahid.order.mapper.OrderMapper;
 import com.nahid.order.producer.OrderEventPublisher;
 import com.nahid.order.repository.OrderRepository;
 import com.nahid.order.service.*;
+import com.nahid.order.util.constant.ExceptionMessageConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,27 +34,24 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
-    private final CustomerValidationService customerValidationService;
+    private final UserValidationService userValidationService;
     private final ProductPurchaseService productPurchaseService;
     private final OrderStatusService orderStatusService;
     private final OrderNumberService orderNumberService;
-    private  final OrderEventPublisher orderEventPublisher;
+    private final OrderEventPublisher orderEventPublisher;
 
     @Override
     public OrderDto createOrder(CreateOrderRequest request) {
-        log.info("Creating order for customer: {}", request.getCustomerId());
 
         try {
-            customerValidationService.validateCustomerForOrder(request.getCustomerId());
+            userValidationService.validateUserForOrder(request.getUserId());
 
             PurchaseProductResponseDto purchaseResponse = productPurchaseService.purchaseProducts(request);
 
             if (purchaseResponse == null || !purchaseResponse.isSuccess()) {
                 String errorMessage = productPurchaseService.formatPurchaseError(purchaseResponse);
-                log.error("Product purchase failed: {}", errorMessage);
-                throw new OrderProcessingException("Cannot create order: " + errorMessage);
+                throw new OrderProcessingException(String.format(ExceptionMessageConstant.PRODUCT_PURCHASE_FAILED, errorMessage));
             }
-
             // Create order entity
             Order order = orderMapper.toEntity(request);
             order.setOrderNumber(orderNumberService.generateOrderNumber());
@@ -79,26 +80,21 @@ public class OrderServiceImpl implements OrderService {
 
             // Publish order created event
             publishOrderCreatedEvent(savedOrder);
-
-            log.info("Order created successfully with ID: {} and number: {}",
-                    savedOrder.getOrderId(), savedOrder.getOrderNumber());
-
             return orderMapper.toDto(savedOrder);
 
-
+        } catch (OrderProcessingException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Error creating order for customer: {}", request.getCustomerId(), e);
-            throw new OrderProcessingException("Failed to create order", e);
+            throw new OrderProcessingException(String.format(ExceptionMessageConstant.ORDER_CREATION_FAILED, e.getMessage()), e);
         }
     }
 
     @Override
     @Transactional(readOnly = true)
     public OrderDto getOrderById(UUID orderId) {
-        log.debug("Fetching order by ID: {}", orderId);
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException("Order not found with ID: " + orderId));
+                .orElseThrow(() -> new OrderNotFoundException(String.format(ExceptionMessageConstant.ORDER_NOT_FOUND, orderId)));
 
         return orderMapper.toDto(order);
     }
@@ -106,73 +102,63 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public OrderDto getOrderByOrderNumber(String orderNumber) {
-        log.debug("Fetching order by order number: {}", orderNumber);
-
         Order order = orderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new OrderNotFoundException("Order not found with number: " + orderNumber));
+                .orElseThrow(() -> new OrderNotFoundException(String.format(ExceptionMessageConstant.ORDER_NOT_FOUND_BY_NUMBER, orderNumber)));
 
         return orderMapper.toDto(order);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OrderDto> getOrdersByCustomerId(String customerId, Pageable pageable) {
-        log.debug("Fetching orders for customer: {}", customerId);
-
-        return orderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId, pageable)
+    public Page<OrderDto> getOrdersByUserId(Long userId, Pageable pageable) {
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
                 .map(orderMapper::toDto);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<OrderDto> getAllOrders(Pageable pageable) {
-        log.debug("Fetching all orders with pagination");
-
         return orderRepository.findAll(pageable)
                 .map(orderMapper::toDto);
     }
 
     @Override
     public OrderDto updateOrderStatus(UUID orderId, OrderStatus status) {
-        log.info("Updating order status for ID: {} to status: {}", orderId, status);
+        try {
+            Order order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new OrderNotFoundException(String.format(ExceptionMessageConstant.ORDER_NOT_FOUND, orderId)));
+            orderStatusService.validateStatusTransition(order.getStatus(), status);
+            order.setStatus(status);
+            Order savedOrder = orderRepository.save(order);
+            return orderMapper.toDto(savedOrder);
+        } catch (Exception e) {
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException("Order not found with ID: " + orderId));
-
-        orderStatusService.validateStatusTransition(order.getStatus(), status);
-
-        order.setStatus(status);
-        Order savedOrder = orderRepository.save(order);
-
-        log.info("Order status updated successfully for ID: {}", orderId);
-
-        return orderMapper.toDto(savedOrder);
+            throw new OrderProcessingException(String.format(ExceptionMessageConstant.ORDER_UPDATE_FAILED, e.getMessage()), e);
+        }
     }
 
     @Override
     public void cancelOrder(UUID orderId) {
-        log.info("Cancelling order with ID: {}", orderId);
 
         try {
             Order order = orderRepository.findById(orderId)
-                    .orElseThrow(() -> new OrderNotFoundException("Order not found with ID: " + orderId));
+                    .orElseThrow(() -> new OrderNotFoundException(String.format(ExceptionMessageConstant.ORDER_NOT_FOUND, orderId)));
 
             orderStatusService.validateCancellation(order.getStatus());
 
             order.setStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
 
-            log.info("Order cancelled successfully with ID: {}", orderId);
         } catch (OrderProcessingException e) {
-            log.error("Failed to cancel order with ID: {} - {}", orderId, e.getMessage());
             throw e;
+        } catch (Exception e) {
+            throw new OrderProcessingException(String.format(ExceptionMessageConstant.ORDER_CANCELLATION_FAILED, e.getMessage()), e);
         }
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersByStatus(OrderStatus status) {
-        log.debug("Fetching orders by status: {}", status);
 
         return orderRepository.findByStatusOrderByCreatedAtDesc(status, Pageable.unpaged())
                 .getContent()
@@ -183,30 +169,33 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public long getOrderCountByCustomerAndStatus(String customerId, OrderStatus status) {
-        log.debug("Counting orders for customer: {} with status: {}", customerId, status);
-
-        return orderRepository.countByCustomerIdAndStatus(customerId, status);
+    public long getOrderCountByUserAndStatus(Long userId, OrderStatus status) {
+        return orderRepository.countByUserIdAndStatus(userId, status);
     }
 
-
     private void publishOrderCreatedEvent(Order order) {
-        OrderEventDto orderEvent = createOrderEvent(order, OrderStatus.CONFIRMED);
-        orderEventPublisher.publishOrderEvent(orderEvent);
+        try {
+            OrderEventDto orderEvent = createOrderEvent(order, OrderStatus.CONFIRMED);
+            orderEventPublisher.publishOrderEvent(orderEvent);
+        } catch (Exception e) {
+
+        }
     }
 
     private void publishOrderCancelledEvent(Order order) {
-        OrderEventDto orderEvent = createOrderEvent(order, OrderStatus.CANCELLED);
-        orderEventPublisher.publishOrderEvent(orderEvent);
+        try {
+            OrderEventDto orderEvent = createOrderEvent(order, OrderStatus.CANCELLED);
+            orderEventPublisher.publishOrderEvent(orderEvent);
+        } catch (Exception ignored) {
+        }
     }
-
 
 
     private OrderEventDto createOrderEvent(Order order, OrderStatus status) {
         return OrderEventDto.builder()
                 .orderId(order.getOrderId())
                 .orderNumber(order.getOrderNumber())
-                .customerId(order.getCustomerId())
+                .userId(order.getUserId())
                 .status(status)
                 .totalAmount(order.getTotalAmount())
                 .createdAt(order.getCreatedAt())

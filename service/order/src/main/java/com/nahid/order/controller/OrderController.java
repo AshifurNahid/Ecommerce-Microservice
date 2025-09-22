@@ -1,10 +1,13 @@
 package com.nahid.order.controller;
 
 
-import com.nahid.order.dto.CreateOrderRequest;
-import com.nahid.order.dto.OrderDto;
+import com.nahid.order.dto.request.CreateOrderRequest;
+import com.nahid.order.dto.request.OrderDto;
+import com.nahid.order.dto.response.ApiResponse;
 import com.nahid.order.enums.OrderStatus;
 import com.nahid.order.service.OrderService;
+import com.nahid.order.util.helper.ApiResponseUtil;
+import com.nahid.order.util.constant.ApiResponseConstant;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,40 +31,29 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
-    public ResponseEntity<OrderDto> createOrder(@Valid @RequestBody CreateOrderRequest request) {
-        log.info("Creating new order for customer: {}", request.getCustomerId());
-
+    public ResponseEntity<ApiResponse<OrderDto>> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         OrderDto orderDto = orderService.createOrder(request);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderDto);
+        return ApiResponseUtil.success(orderDto, ApiResponseConstant.ORDER_CREATED_SUCCESSFULLY, HttpStatus.CREATED);
     }
 
     @GetMapping("/{orderId}")
-    public ResponseEntity<OrderDto> getOrderById(@PathVariable UUID orderId) {
-        log.info("Fetching order by ID: {}", orderId);
-
+    public ResponseEntity<ApiResponse<OrderDto>> getOrderById(@PathVariable UUID orderId) {
         OrderDto orderDto = orderService.getOrderById(orderId);
-
-        return ResponseEntity.ok(orderDto);
+        return ApiResponseUtil.success(orderDto, ApiResponseConstant.ORDER_FETCHED_SUCCESSFULLY);
     }
 
     @GetMapping("/order-number/{orderNumber}")
-    public ResponseEntity<OrderDto> getOrderByOrderNumber(@PathVariable String orderNumber) {
-        log.info("Fetching order by order number: {}", orderNumber);
-
+    public ResponseEntity<ApiResponse<OrderDto>> getOrderByOrderNumber(@PathVariable String orderNumber) {
         OrderDto orderDto = orderService.getOrderByOrderNumber(orderNumber);
-
-        return ResponseEntity.ok(orderDto);
+        return ApiResponseUtil.success(orderDto, ApiResponseConstant.ORDER_FETCHED_SUCCESSFULLY);
     }
 
     @GetMapping
-    public ResponseEntity<Page<OrderDto>> getAllOrders(
+    public ResponseEntity<ApiResponse<Page<OrderDto>>> getAllOrders(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
-
-        log.info("Fetching all orders - page: {}, size: {}", page, size);
 
         Sort sort = sortDir.equalsIgnoreCase("desc") ?
                 Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
@@ -69,60 +61,48 @@ public class OrderController {
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<OrderDto> orders = orderService.getAllOrders(pageable);
 
-        return ResponseEntity.ok(orders);
+        return ApiResponseUtil.success(orders, ApiResponseConstant.ORDERS_FETCHED_SUCCESSFULLY);
     }
 
-    @GetMapping("/customer/{customerId}")
-    public ResponseEntity<Page<OrderDto>> getOrdersByCustomerId(
-            @PathVariable String customerId,
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse<Page<OrderDto>>> getOrdersByUserId(
+            @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        log.info("Fetching orders for customer: {}", customerId);
-
         Pageable pageable = PageRequest.of(page, size);
-        Page<OrderDto> orders = orderService.getOrdersByCustomerId(customerId, pageable);
+        Page<OrderDto> orders = orderService.getOrdersByUserId(userId, pageable);
 
-        return ResponseEntity.ok(orders);
+        return ApiResponseUtil.success(orders, ApiResponseConstant.ORDERS_BY_USER_FETCHED);
     }
 
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<OrderDto>> getOrdersByStatus(@PathVariable OrderStatus status) {
-        log.info("Fetching orders by status: {}", status);
-
+    public ResponseEntity<ApiResponse<List<OrderDto>>> getOrdersByStatus(@PathVariable OrderStatus status) {
         List<OrderDto> orders = orderService.getOrdersByStatus(status);
-
-        return ResponseEntity.ok(orders);
+        String message = String.format(ApiResponseConstant.ORDERS_BY_STATUS_FETCHED, status);
+        return ApiResponseUtil.success(orders, message);
     }
 
     @PutMapping("/{orderId}/status")
-    public ResponseEntity<OrderDto> updateOrderStatus(
+    public ResponseEntity<ApiResponse<OrderDto>> updateOrderStatus(
             @PathVariable UUID orderId,
             @RequestParam OrderStatus status) {
 
-        log.info("Updating order status for ID: {} to status: {}", orderId, status);
-
         OrderDto orderDto = orderService.updateOrderStatus(orderId, status);
-
-        return ResponseEntity.ok(orderDto);
+        return ApiResponseUtil.success(orderDto, ApiResponseConstant.ORDER_STATUS_UPDATED);
     }
 
     @DeleteMapping("/{orderId}")
-    public ResponseEntity<Void> cancelOrder(@PathVariable UUID orderId) {
-        log.info("Cancelling order with ID: {}", orderId);
+    public ResponseEntity<ApiResponse<Void>> cancelOrder(@PathVariable UUID orderId) {
         orderService.cancelOrder(orderId);
-        return ResponseEntity.noContent().build();
+        return ApiResponseUtil.success(null, ApiResponseConstant.ORDER_CANCELLED_SUCCESSFULLY, HttpStatus.NO_CONTENT);
     }
 
-    @GetMapping("/customer/{customerId}/count")
-    public ResponseEntity<Long> getOrderCountByCustomerAndStatus(
-            @PathVariable String customerId,
+    @GetMapping("/user/{userId}/count")
+    public ResponseEntity<ApiResponse<Long>> getOrderCountByUserAndStatus(
+            @PathVariable Long userId,
             @RequestParam OrderStatus status) {
-
-        log.info("Counting orders for customer: {} with status: {}", customerId, status);
-
-        long count = orderService.getOrderCountByCustomerAndStatus(customerId, status);
-
-        return ResponseEntity.ok(count);
+        long count = orderService.getOrderCountByUserAndStatus(userId, status);
+        return ApiResponseUtil.success(count, ApiResponseConstant.ORDER_COUNT_FETCHED);
     }
 }

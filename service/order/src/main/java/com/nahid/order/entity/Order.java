@@ -32,8 +32,8 @@ public class Order {
     @Column(name = "order_number", nullable = false, unique = true)
     String orderNumber;
 
-    @Column(name = "customer_id", nullable = false)
-    String customerId;
+    @Column(name = "user_id", nullable = false)
+    Long userId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

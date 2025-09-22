@@ -1,11 +1,10 @@
 package com.nahid.order.client;
 
 
-import com.nahid.order.dto.PurchaseProductRequestDto;
-import com.nahid.order.dto.PurchaseProductResponseDto;
+import com.nahid.order.dto.request.PurchaseProductRequestDto;
+import com.nahid.order.dto.response.PurchaseProductResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;

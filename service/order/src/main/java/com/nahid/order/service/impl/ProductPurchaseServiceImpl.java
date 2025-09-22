@@ -1,10 +1,10 @@
 package com.nahid.order.service.impl;
 
 import com.nahid.order.client.ProductClient;
-import com.nahid.order.dto.CreateOrderRequest;
-import com.nahid.order.dto.PurchaseProductItemDto;
-import com.nahid.order.dto.PurchaseProductRequestDto;
-import com.nahid.order.dto.PurchaseProductResponseDto;
+import com.nahid.order.dto.request.CreateOrderRequest;
+import com.nahid.order.dto.request.PurchaseProductItemDto;
+import com.nahid.order.dto.request.PurchaseProductRequestDto;
+import com.nahid.order.dto.response.PurchaseProductResponseDto;
 import com.nahid.order.service.OrderNumberService;
 import com.nahid.order.service.ProductPurchaseService;
 import lombok.RequiredArgsConstructor;

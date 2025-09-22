@@ -1,7 +1,7 @@
 package com.nahid.order.service;
 
-import com.nahid.order.dto.CreateOrderRequest;
-import com.nahid.order.dto.OrderDto;
+import com.nahid.order.dto.request.CreateOrderRequest;
+import com.nahid.order.dto.request.OrderDto;
 import com.nahid.order.enums.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +17,7 @@ public interface OrderService {
 
     OrderDto getOrderByOrderNumber(String orderNumber);
 
-    Page<OrderDto> getOrdersByCustomerId(String customerId, Pageable pageable);
+    Page<OrderDto> getOrdersByUserId(Long userId, Pageable pageable);
 
     Page<OrderDto> getAllOrders(Pageable pageable);
 
@@ -27,5 +27,5 @@ public interface OrderService {
 
     List<OrderDto> getOrdersByStatus(OrderStatus status);
 
-    long getOrderCountByCustomerAndStatus(String customerId, OrderStatus status);
+    long getOrderCountByUserAndStatus(Long userId, OrderStatus status);
 }
