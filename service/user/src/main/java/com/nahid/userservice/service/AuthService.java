@@ -42,12 +42,10 @@ public class AuthService {
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) throws AuthenticationException {
-        log.info("Attempting to register user with email: {}", request.getEmail());
 
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AuthenticationException(ExceptionMessageConstant.EMAIL_ALREADY_REGISTERED);
         }
-
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -57,8 +55,6 @@ public class AuthService {
                 .build();
 
         User savedUser = userRepository.save(user);
-        log.info("User registered successfully with ID: {}", savedUser.getId());
-
         return RegisterResponse.builder()
                 .id(savedUser.getId())
                 .email(savedUser.getEmail())
@@ -85,32 +81,50 @@ public class AuthService {
 
     @Transactional
     public AuthResponse refreshToken(String authHeader) {
+        log.info("Processing refresh token request");
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new RuntimeException("Refresh token is missing");
+            log.error("Invalid authorization header format");
+            throw new AuthenticationException("Invalid authorization header format. Bearer token required");
         }
+
         String token = authHeader.substring(7);
+        if (token.trim().isEmpty()) {
+            log.error("Empty refresh token provided");
+            throw new AuthenticationException("Refresh token cannot be empty");
+        }
 
         RefreshToken refreshToken = refreshTokenRepository
                 .findByToken(token)
-                .orElseThrow(() -> new AuthenticationException(ExceptionMessageConstant.INVALID_REFRESH_TOKEN));
+                .orElseThrow(() -> {
+                    log.error("Invalid refresh token: {}", token);
+                    return new AuthenticationException(ExceptionMessageConstant.INVALID_REFRESH_TOKEN);
+                });
 
         if (refreshToken.isRevoked()) {
-            log.warn("Attempted use of revoked refresh token");
+            log.warn("Attempted use of revoked refresh token for user: {}", refreshToken.getUser().getEmail());
+            refreshTokenRepository.delete(refreshToken);
             throw new AuthenticationException(ExceptionMessageConstant.REFRESH_TOKEN_REVOKED);
         }
 
         if (refreshToken.isExpired()) {
-            log.warn("Attempted use of expired refresh token");
+            log.warn("Attempted use of expired refresh token for user: {}", refreshToken.getUser().getEmail());
             refreshTokenRepository.delete(refreshToken);
             throw new AuthenticationException(ExceptionMessageConstant.REFRESH_TOKEN_EXPIRED);
         }
 
         User user = refreshToken.getUser();
-
+        // Delete old refresh token before generating new one
         refreshTokenRepository.delete(refreshToken);
 
-        log.info("Token refreshed successfully for user: {}", user.getEmail());
-        return generateTokenAndResponse(user);
+        try {
+            AuthResponse response = generateTokenAndResponse(user);
+            log.info("Successfully refreshed tokens for user: {}", user.getEmail());
+            return response;
+        } catch (Exception e) {
+            log.error("Error generating new tokens for user: {}", user.getEmail(), e);
+            throw new AuthenticationException("Error generating new tokens");
+        }
     }
 
     private AuthResponse generateTokenAndResponse(User user) {

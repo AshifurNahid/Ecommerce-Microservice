@@ -20,8 +20,6 @@ public class UserPublicResponse {
     private String lastName;
     private String email;
     private String phoneNumber;
-    private LocalDateTime dateOfBirth;
-    private Gender gender;
     private List<UserAddressResponse> addresses;
     private UserStatus status;
     private LocalDateTime createdAt;

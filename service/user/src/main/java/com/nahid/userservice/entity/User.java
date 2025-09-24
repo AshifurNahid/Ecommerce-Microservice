@@ -54,10 +54,8 @@ public class User implements UserDetails {
     @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "Phone number should be valid")
     private String phoneNumber;
 
-    private LocalDateTime dateOfBirth;
 
-    @Enumerated(EnumType.STRING)
-    private Gender gender;
+
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
