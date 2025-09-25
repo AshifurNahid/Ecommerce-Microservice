@@ -9,7 +9,7 @@ import com.nahid.userservice.dto.response.RegisterResponse;
 import com.nahid.userservice.service.AuthService;
 import com.nahid.userservice.service.UserService;
 import com.nahid.userservice.util.helper.ApiResponseUtil;
-import com.nahid.userservice.util.contant.ApiResponseConstant;
+import com.nahid.userservice.util.constant.ApiResponseConstant;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

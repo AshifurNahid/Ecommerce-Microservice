@@ -1,4 +1,4 @@
-package com.nahid.userservice.util.contant;
+package com.nahid.userservice.util.constant;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

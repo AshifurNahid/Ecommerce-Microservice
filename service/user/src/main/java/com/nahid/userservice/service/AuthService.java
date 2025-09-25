@@ -10,7 +10,7 @@ import com.nahid.userservice.enums.Role;
 import com.nahid.userservice.exception.AuthenticationException;
 import com.nahid.userservice.repository.RefreshTokenRepository;
 import com.nahid.userservice.repository.UserRepository;
-import com.nahid.userservice.util.contant.ExceptionMessageConstant;
+import com.nahid.userservice.util.constant.ExceptionMessageConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

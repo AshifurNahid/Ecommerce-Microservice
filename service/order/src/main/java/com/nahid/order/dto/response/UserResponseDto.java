@@ -1,6 +1,5 @@
 package com.nahid.order.dto.response;
 
-import com.nahid.order.enums.Gender;
 import com.nahid.order.enums.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,9 +19,7 @@ public class UserResponseDto {
     private String lastName;
     private String email;
     private String phoneNumber;
-    private LocalDateTime dateOfBirth;
-    private Gender gender;
-    private List<UserAddressDto> addresses;
+    private List<UserAddressResponse> addresses;
     private UserStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

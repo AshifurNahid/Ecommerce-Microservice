@@ -12,9 +12,9 @@ import java.time.Instant;
 @AllArgsConstructor
 @Builder
 public class ApiResponse<T> {
+    private int statusCode;
     private boolean success;
     private String message;
     private T data;
-    private int statusCode;
     private Instant timestamp;
 }

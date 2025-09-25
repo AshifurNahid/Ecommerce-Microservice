@@ -21,27 +21,17 @@ public class UserValidationServiceImpl implements UserValidationService {
 
     @Override
     public void validateUserForOrder(@NotNull(message = "User ID is required") Long userId) {
-        log.info(LoggingConstant.USER_VALIDATION_INITIATED, userId);
-
         try {
             Optional<UserResponseDto> userResponseDto = userClient.getUserById(userId);
-
             if (userResponseDto.isEmpty()) {
-                log.error(LoggingConstant.USER_VALIDATION_FAILED, userId);
                 throw new OrderProcessingException(String.format(ExceptionMessageConstant.USER_NOT_FOUND, userId));
             }
-
             UserResponseDto user = userResponseDto.get();
-
             validateUserStatus(user, userId);
 
-            log.debug(LoggingConstant.USER_VALIDATION_SUCCESSFUL, userId);
-
         } catch (OrderProcessingException e) {
-            log.error(LoggingConstant.USER_VALIDATION_FAILED, userId);
             throw e;
         } catch (Exception e) {
-            log.error(LoggingConstant.USER_VALIDATION_FAILED, userId, e);
             throw new OrderProcessingException(String.format(ExceptionMessageConstant.USER_VALIDATION_FAILED, userId), e);
         }
     }

@@ -10,8 +10,8 @@ import com.nahid.userservice.exception.ResourceNotFoundException;
 import com.nahid.userservice.mapper.UserMapper;
 import com.nahid.userservice.repository.RefreshTokenRepository;
 import com.nahid.userservice.repository.UserRepository;
-import com.nahid.userservice.util.contant.ExceptionMessageConstant;
-import com.nahid.userservice.util.contant.AppConstant;
+import com.nahid.userservice.util.constant.ExceptionMessageConstant;
+import com.nahid.userservice.util.constant.AppConstant;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import static com.nahid.userservice.util.contant.ExceptionMessageConstant.*;
+import static com.nahid.userservice.util.constant.ExceptionMessageConstant.*;
 
 
 @Service
