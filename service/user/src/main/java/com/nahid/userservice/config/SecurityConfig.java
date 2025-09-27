@@ -55,13 +55,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // Disable CSRF (not needed for stateless REST API)
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // Configure CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // Configure authorization rules
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
@@ -71,16 +67,10 @@ public class SecurityConfig {
                         .requestMatchers("/users/**").authenticated()
                         .anyRequest().authenticated()
                 )
-
-                // Stateless session management
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
-                // Set authentication provider
                 .authenticationProvider(authenticationProvider())
-
-                // Add JWT filter before UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

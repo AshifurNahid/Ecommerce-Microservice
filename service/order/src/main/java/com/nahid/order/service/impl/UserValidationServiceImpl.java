@@ -1,13 +1,18 @@
 package com.nahid.order.service.impl;
 
 import com.nahid.order.client.UserClient;
+import com.nahid.order.dto.response.ApiResponse;
 import com.nahid.order.dto.response.UserResponseDto;
 import com.nahid.order.exception.OrderProcessingException;
+import com.nahid.order.exception.UserValidationException;
 import com.nahid.order.service.UserValidationService;
 import com.nahid.order.util.constant.ExceptionMessageConstant;
+import feign.FeignException;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.errors.ResourceNotFoundException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -22,40 +27,40 @@ public class UserValidationServiceImpl implements UserValidationService {
     @Override
     public void validateUserForOrder(@NotNull(message = "User ID is required") Long userId) {
         try {
-            Optional<UserResponseDto> userResponseDto = userClient.getUserById(userId);
-            if (userResponseDto.isEmpty()) {
-                throw new OrderProcessingException(String.format(ExceptionMessageConstant.USER_NOT_FOUND, userId));
-            }
-            UserResponseDto user = userResponseDto.get();
+            ResponseEntity<ApiResponse<UserResponseDto>> userResponseDto = userClient.getUserById(userId);
+            UserResponseDto user = Optional.ofNullable(userResponseDto)
+                    .filter(response -> response.getStatusCode().is2xxSuccessful())
+                    .map(ResponseEntity::getBody)
+                    .filter(ApiResponse::isSuccess)
+                    .map(ApiResponse::getData)
+                    .orElseThrow(() -> new OrderProcessingException(String.format(ExceptionMessageConstant.USER_NOT_FOUND, userId)));
             validateUserStatus(user, userId);
 
+        } catch (FeignException.NotFound e) {
+            throw new ResourceNotFoundException(String.format(ExceptionMessageConstant.USER_NOT_FOUND, userId));
+
         } catch (OrderProcessingException e) {
-            throw e;
+            throw new OrderProcessingException(e.getMessage());
+
         } catch (Exception e) {
-            throw new OrderProcessingException(String.format(ExceptionMessageConstant.USER_VALIDATION_FAILED, userId), e);
+            throw new UserValidationException(String.format(ExceptionMessageConstant.USER_VALIDATION_FAILED, userId), e);
         }
     }
-
     private void validateUserStatus(UserResponseDto user, Long userId) {
+        if (user.getStatus() == null) {
+            throw new OrderProcessingException(String.format(ExceptionMessageConstant.USER_VALIDATION_FAILED, userId));
+        }
+
         switch (user.getStatus()) {
             case SUSPENDED:
-                log.error("User with ID: {} is Suspended", userId);
                 throw new OrderProcessingException(ExceptionMessageConstant.USER_SUSPENDED);
-
             case INACTIVE:
-                log.error("User with ID: {} is Inactive", userId);
                 throw new OrderProcessingException(ExceptionMessageConstant.USER_INACTIVE);
-
             case BLOCKED:
-                log.error("User with ID: {} is Blocked", userId);
                 throw new OrderProcessingException(ExceptionMessageConstant.USER_BLOCKED);
-
             case ACTIVE:
-                log.debug("User with ID: {} is active and valid", userId);
                 break;
-
             default:
-                log.warn("User with ID: {} has unknown status: {}", userId, user.getStatus());
                 throw new OrderProcessingException(String.format(ExceptionMessageConstant.USER_VALIDATION_FAILED, userId));
         }
     }

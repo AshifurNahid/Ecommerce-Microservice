@@ -49,7 +49,7 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public LogoutResponse logout(String authHeader) {
+    public String logout(String authHeader) {
         log.info("Attempting logout with authorization header");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -69,17 +69,14 @@ public class UserService implements UserDetailsService {
         }
 
 
-        if (!tokenEntity.getUser().getUsername().equals(SecurityContextHolder.getContext().getAuthentication().getName())) {
-            throw new RuntimeException(REFRESH_TOKEN_OWNERSHIP_MISMATCH);
-        }
+//        if (!tokenEntity.getUser().getUsername().equals(SecurityContextHolder.getContext().getAuthentication().getName())) {
+//            throw new RuntimeException(REFRESH_TOKEN_OWNERSHIP_MISMATCH);
+//        }
 
         tokenEntity.setRevoked(true);
         refreshTokenRepository.save(tokenEntity);
 
-        return LogoutResponse.builder()
-                .message("Logged out successfully")
-                .success(true)
-                .build();
+        return "Logout successful";
     }
 
     public UserPublicResponse getUserPublicById(Long userId) {

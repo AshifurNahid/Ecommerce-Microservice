@@ -43,8 +43,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<LogoutResponse>> logout(@RequestHeader("Authorization") String authHeader) {
-        return ApiResponseUtil.success(userService.logout(authHeader), ApiResponseConstant.LOGOUT_SUCCESSFUL);
+    //@PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<LogoutResponse>> logout(@RequestHeader(value = "Authorization", required = false)String authHeader) {
+        return ApiResponseUtil.success(null, userService.logout(authHeader));
     }
 }

@@ -24,12 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * Main product service that delegates to specialized services
- * Follows SOLID principles by:
- * - Acting as a facade to coordinate between specialized services
- * - Delegating specific responsibilities to appropriate services
- */
+
 @Service
 @RequiredArgsConstructor
 @Slf4j

@@ -7,9 +7,6 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * Main product service interface that delegates to specialized services
- */
 public interface ProductService {
     // CRUD operations
     ProductResponseDto createProduct(CreateProductRequestDto request);

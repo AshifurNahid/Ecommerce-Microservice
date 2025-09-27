@@ -52,12 +52,10 @@ public class OrderServiceImpl implements OrderService {
                 String errorMessage = productPurchaseService.formatPurchaseError(purchaseResponse);
                 throw new OrderProcessingException(String.format(ExceptionMessageConstant.PRODUCT_PURCHASE_FAILED, errorMessage));
             }
-            // Create order entity
             Order order = orderMapper.toEntity(request);
             order.setOrderNumber(orderNumberService.generateOrderNumber());
             order.setStatus(OrderStatus.PENDING);
 
-            // Calculate order items and totals
             List<OrderItem> orderItems = request.getOrderItems().stream()
                     .map(itemRequest -> {
                         OrderItem item = orderMapper.toEntity(itemRequest);
@@ -77,8 +75,6 @@ public class OrderServiceImpl implements OrderService {
             }
 
             Order savedOrder = orderRepository.save(order);
-
-            // Publish order created event
             publishOrderCreatedEvent(savedOrder);
             return orderMapper.toDto(savedOrder);
 
@@ -164,7 +160,7 @@ public class OrderServiceImpl implements OrderService {
                 .getContent()
                 .stream()
                 .map(orderMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -178,7 +174,7 @@ public class OrderServiceImpl implements OrderService {
             OrderEventDto orderEvent = createOrderEvent(order, OrderStatus.CONFIRMED);
             orderEventPublisher.publishOrderEvent(orderEvent);
         } catch (Exception e) {
-
+            log.error("Failed to publish order created event for orderId {}: {}", order.getOrderId(), e.getMessage());
         }
     }
 
