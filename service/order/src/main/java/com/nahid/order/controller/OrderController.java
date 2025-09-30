@@ -8,6 +8,8 @@ import com.nahid.order.enums.OrderStatus;
 import com.nahid.order.service.OrderService;
 import com.nahid.order.util.helper.ApiResponseUtil;
 import com.nahid.order.util.constant.ApiResponseConstant;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +23,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
-
+@Tag(
+        name = "Order Management",
+        description = "Order Management API"
+)
 @RestController
 @RequestMapping("api/v1/orders")
 @RequiredArgsConstructor
@@ -30,6 +35,7 @@ public class OrderController {
 
     private final OrderService orderService;
 
+    @Operation(summary = "Create a new order", description = "Create a new order")
     @PostMapping
     public ResponseEntity<ApiResponse<OrderDto>> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         OrderDto orderDto = orderService.createOrder(request);
