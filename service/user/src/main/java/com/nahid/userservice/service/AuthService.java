@@ -66,7 +66,6 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(AuthRequest request) {
-        log.info("Attempting login for email: {}", request.getEmail());
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(request.getEmail(),
                         request.getPassword());
@@ -74,57 +73,43 @@ public class AuthService {
                 token
         );
         User user = (User) authentication.getPrincipal();
-        log.info("User authenticated successfully: {}", user.getEmail());
 
         return generateTokenAndResponse(user);
     }
 
     @Transactional
     public AuthResponse refreshToken(String authHeader) {
-        log.info("Processing refresh token request");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.error("Invalid authorization header format");
             throw new AuthenticationException("Invalid authorization header format. Bearer token required");
         }
 
         String token = authHeader.substring(7);
         if (token.trim().isEmpty()) {
-            log.error("Empty refresh token provided");
             throw new AuthenticationException("Refresh token cannot be empty");
         }
 
         RefreshToken refreshToken = refreshTokenRepository
                 .findByToken(token)
                 .orElseThrow(() -> {
-                    log.error("Invalid refresh token: {}", token);
                     return new AuthenticationException(ExceptionMessageConstant.INVALID_REFRESH_TOKEN);
                 });
 
         if (refreshToken.isRevoked()) {
-            log.warn("Attempted use of revoked refresh token for user: {}", refreshToken.getUser().getEmail());
             refreshTokenRepository.delete(refreshToken);
             throw new AuthenticationException(ExceptionMessageConstant.REFRESH_TOKEN_REVOKED);
         }
 
         if (refreshToken.isExpired()) {
-            log.warn("Attempted use of expired refresh token for user: {}", refreshToken.getUser().getEmail());
             refreshTokenRepository.delete(refreshToken);
             throw new AuthenticationException(ExceptionMessageConstant.REFRESH_TOKEN_EXPIRED);
         }
 
         User user = refreshToken.getUser();
-        // Delete old refresh token before generating new one
         refreshTokenRepository.delete(refreshToken);
 
-        try {
-            AuthResponse response = generateTokenAndResponse(user);
-            log.info("Successfully refreshed tokens for user: {}", user.getEmail());
-            return response;
-        } catch (Exception e) {
-            log.error("Error generating new tokens for user: {}", user.getEmail(), e);
-            throw new AuthenticationException("Error generating new tokens");
-        }
+        return generateTokenAndResponse(user);
+
     }
 
     private AuthResponse generateTokenAndResponse(User user) {
