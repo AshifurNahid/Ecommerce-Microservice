@@ -46,14 +46,16 @@ public class OrderServiceImpl implements OrderService {
         try {
             userValidationService.validateUserForOrder(request.getUserId());
 
-            PurchaseProductResponseDto purchaseResponse = productPurchaseService.purchaseProducts(request);
+            String orderNumber = orderNumberService.generateOrderNumber();
+
+            PurchaseProductResponseDto purchaseResponse = productPurchaseService.purchaseProducts(request, orderNumber);
 
             if (purchaseResponse == null || !purchaseResponse.isSuccess()) {
                 String errorMessage = productPurchaseService.formatPurchaseError(purchaseResponse);
                 throw new OrderProcessingException(String.format(ExceptionMessageConstant.PRODUCT_PURCHASE_FAILED, errorMessage));
             }
             Order order = orderMapper.toEntity(request);
-            order.setOrderNumber(orderNumberService.generateOrderNumber());
+            order.setOrderNumber(orderNumber);
             order.setStatus(OrderStatus.PENDING);
 
             List<OrderItem> orderItems = request.getOrderItems().stream()

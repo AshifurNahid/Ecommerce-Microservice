@@ -5,7 +5,6 @@ import com.nahid.order.dto.request.CreateOrderRequest;
 import com.nahid.order.dto.request.PurchaseProductItemDto;
 import com.nahid.order.dto.request.PurchaseProductRequestDto;
 import com.nahid.order.dto.response.PurchaseProductResponseDto;
-import com.nahid.order.service.OrderNumberService;
 import com.nahid.order.service.ProductPurchaseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,12 +19,9 @@ import java.util.stream.Collectors;
 public class ProductPurchaseServiceImpl implements ProductPurchaseService {
 
     private final ProductClient productClient;
-    private final OrderNumberService orderNumberService;
 
     @Override
-    public PurchaseProductResponseDto purchaseProducts(CreateOrderRequest request) {
-        String orderReference = orderNumberService.generateOrderNumber();
-
+    public PurchaseProductResponseDto purchaseProducts(CreateOrderRequest request, String orderReference) {
         List<PurchaseProductItemDto> items = request.getOrderItems().stream()
                 .map(item -> PurchaseProductItemDto.builder()
                         .productId(item.getProductId())
