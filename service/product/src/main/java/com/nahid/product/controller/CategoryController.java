@@ -1,7 +1,7 @@
 package com.nahid.product.controller;
 
-import com.nahid.product.dto.CategoryResponseDto;
-import com.nahid.product.dto.CreateCategoryRequestDto;
+import com.nahid.product.dto.response.CategoryResponseDto;
+import com.nahid.product.dto.request.CreateCategoryRequestDto;
 import com.nahid.product.dto.response.ApiResponse;
 import com.nahid.product.service.CategoryService;
 import com.nahid.product.util.constant.ApiResponseConstant;

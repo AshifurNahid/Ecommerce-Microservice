@@ -1,7 +1,11 @@
 package com.nahid.product.controller;
 
-import com.nahid.product.dto.*;
+import com.nahid.product.dto.request.CreateProductRequestDto;
+import com.nahid.product.dto.request.PurchaseProductRequestDto;
+import com.nahid.product.dto.request.UpdateProductRequestDto;
 import com.nahid.product.dto.response.ApiResponse;
+import com.nahid.product.dto.response.ProductResponseDto;
+import com.nahid.product.dto.response.PurchaseProductResponseDto;
 import com.nahid.product.service.ProductService;
 import com.nahid.product.util.constant.ApiResponseConstant;
 import com.nahid.product.util.helper.ApiResponseUtil;

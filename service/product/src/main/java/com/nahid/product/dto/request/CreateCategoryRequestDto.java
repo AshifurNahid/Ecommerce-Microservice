@@ -1,4 +1,4 @@
-package com.nahid.product.dto;
+package com.nahid.product.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

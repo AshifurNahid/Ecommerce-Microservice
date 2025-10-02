@@ -23,20 +23,7 @@ public class GlobalExceptionHandler {
         log.error("Resource not found: {}", ex.getMessage());
         return ApiResponseUtil.failureWithHttpStatus(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
-    @ExceptionHandler(StockUpdateException.class)
-    public ResponseEntity<ErrorResponse> handleStockUpdateException(StockUpdateException ex) {
-        HttpStatus status = HttpStatus.BAD_REQUEST;
-        log.error("Stock update failed: {}", ex.getMessage());
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(status.value())
-                .error("Stock Update Failed")
-                .message(ex.getMessage())
-                .build();
-
-        return ResponseEntity.status(status).body(errorResponse);
-    }
 
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiResponse<Object>> handleDuplicateResourceException(DuplicateResourceException ex) {

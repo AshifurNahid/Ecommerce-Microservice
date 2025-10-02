@@ -1,6 +1,6 @@
 package com.nahid.product.service.Impl;
 
-import com.nahid.product.dto.ProductResponseDto;
+import com.nahid.product.dto.response.ProductResponseDto;
 import com.nahid.product.entity.Product;
 import com.nahid.product.exception.ResourceNotFoundException;
 import com.nahid.product.exception.StockUpdateException;

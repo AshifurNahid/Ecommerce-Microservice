@@ -1,8 +1,8 @@
 package com.nahid.product.mapper;
 
 
-import com.nahid.product.dto.CategoryResponseDto;
-import com.nahid.product.dto.CreateCategoryRequestDto;
+import com.nahid.product.dto.response.CategoryResponseDto;
+import com.nahid.product.dto.request.CreateCategoryRequestDto;
 import com.nahid.product.entity.Category;
 import org.mapstruct.*;
 

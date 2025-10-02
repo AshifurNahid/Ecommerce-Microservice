@@ -1,7 +1,7 @@
 package com.nahid.product.service;
 
-import com.nahid.product.dto.PurchaseProductRequestDto;
-import com.nahid.product.dto.PurchaseProductResponseDto;
+import com.nahid.product.dto.request.PurchaseProductRequestDto;
+import com.nahid.product.dto.response.PurchaseProductResponseDto;
 
 
 public interface PurchaseService {

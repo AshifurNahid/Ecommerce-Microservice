@@ -2,8 +2,8 @@ package com.nahid.product.service;
 
 
 
-import com.nahid.product.dto.CategoryResponseDto;
-import com.nahid.product.dto.CreateCategoryRequestDto;
+import com.nahid.product.dto.response.CategoryResponseDto;
+import com.nahid.product.dto.request.CreateCategoryRequestDto;
 
 import java.util.List;
 

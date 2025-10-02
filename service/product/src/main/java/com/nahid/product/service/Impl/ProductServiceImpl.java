@@ -1,6 +1,10 @@
 package com.nahid.product.service.Impl;
 
-import com.nahid.product.dto.*;
+import com.nahid.product.dto.request.CreateProductRequestDto;
+import com.nahid.product.dto.request.PurchaseProductRequestDto;
+import com.nahid.product.dto.request.UpdateProductRequestDto;
+import com.nahid.product.dto.response.ProductResponseDto;
+import com.nahid.product.dto.response.PurchaseProductResponseDto;
 import com.nahid.product.entity.Category;
 import com.nahid.product.entity.Product;
 import com.nahid.product.exception.DuplicateResourceException;
@@ -50,7 +54,6 @@ public class ProductServiceImpl implements ProductService {
 
             Category category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> {
-                        //log.error("Category with ID {} not found", request.getCategoryId());
                         return new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId());
                     });
 
@@ -124,7 +127,6 @@ public class ProductServiceImpl implements ProductService {
         log.debug("Fetching products by category ID: {} with pagination: {}", categoryId, pageable);
 
         if (!categoryRepository.existsById(categoryId)) {
-            log.error("Category with ID {} not found", categoryId);
             throw new ResourceNotFoundException("Category not found with ID: " + categoryId);
         }
 
@@ -180,7 +182,6 @@ public class ProductServiceImpl implements ProductService {
             productMapper.updateProductFromRequest(request, existingProduct);
 
             Product updatedProduct = productRepository.save(existingProduct);
-            log.info("Product updated successfully with ID: {}", updatedProduct.getId());
 
             return productMapper.toResponse(updatedProduct);
         } catch (ResourceNotFoundException e) {
@@ -198,7 +199,6 @@ public class ProductServiceImpl implements ProductService {
 
         try {
             if (!productRepository.existsById(id)) {
-                log.error("Product with ID {} not found", id);
                 throw new ResourceNotFoundException("Product not found with ID: " + id);
             }
 

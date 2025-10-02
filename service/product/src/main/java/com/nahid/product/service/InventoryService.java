@@ -1,6 +1,6 @@
 package com.nahid.product.service;
 
-import com.nahid.product.dto.ProductResponseDto;
+import com.nahid.product.dto.response.ProductResponseDto;
 
 public interface InventoryService {
 

@@ -1,6 +1,10 @@
 package com.nahid.product.service;
 
-import com.nahid.product.dto.*;
+import com.nahid.product.dto.request.CreateProductRequestDto;
+import com.nahid.product.dto.request.PurchaseProductRequestDto;
+import com.nahid.product.dto.request.UpdateProductRequestDto;
+import com.nahid.product.dto.response.ProductResponseDto;
+import com.nahid.product.dto.response.PurchaseProductResponseDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

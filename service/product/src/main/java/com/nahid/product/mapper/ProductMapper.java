@@ -1,8 +1,8 @@
 package com.nahid.product.mapper;
 
-import com.nahid.product.dto.CreateProductRequestDto;
-import com.nahid.product.dto.ProductResponseDto;
-import com.nahid.product.dto.UpdateProductRequestDto;
+import com.nahid.product.dto.request.CreateProductRequestDto;
+import com.nahid.product.dto.response.ProductResponseDto;
+import com.nahid.product.dto.request.UpdateProductRequestDto;
 import com.nahid.product.entity.Product;
 import org.mapstruct.*;
 

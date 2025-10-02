@@ -1,4 +1,4 @@
-package com.nahid.product.dto;
+package com.nahid.product.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
