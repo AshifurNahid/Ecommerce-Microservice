@@ -26,42 +26,42 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "order_id")
-    UUID orderId;
+    private UUID orderId;
 
 
     @Column(name = "order_number", nullable = false, unique = true)
-    String orderNumber;
+    private String orderNumber;
 
     @Column(name = "user_id", nullable = false)
-    Long userId;
+    private Long userId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    OrderStatus status;
+    private OrderStatus status;
 
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
-    BigDecimal totalAmount;
+    private BigDecimal totalAmount;
 
     @Column(name = "currency", nullable = false)
-    String currency;
+    private String currency;
 
     @Embedded
-    ShippingAddress shippingAddress;
+    private ShippingAddress shippingAddress;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
-    List<OrderItem> orderItems = new ArrayList<>();
+    private List<OrderItem> orderItems = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    LocalDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at")
-    LocalDateTime updatedAt;
+    private LocalDateTime updatedAt;
 
     @Version
-    Long version;
+    private Long version;
 
     // Helper methods
     public void addOrderItem(OrderItem orderItem) {

@@ -26,24 +26,15 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.REPEATABLE_READ, rollbackFor = Exception.class)
     public ProductResponseDto updateStock(Long id, Integer newStock) {
-        log.info("Updating stock for product ID: {} to quantity: {}", id, newStock);
 
         try {
             if (newStock < 0) {
-                log.error("Invalid stock quantity: {} for product ID: {}", newStock, id);
                 throw new StockUpdateException("Stock quantity cannot be negative");
             }
-
             Product product = productRepository.findById(id)
-                    .orElseThrow(() -> {
-                        log.error("Product with ID {} not found", id);
-                        return new ResourceNotFoundException("Product not found with ID: " + id);
-                    });
-
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
             product.setStockQuantity(newStock);
             Product updatedProduct = productRepository.save(product);
-
-            log.info("Stock updated successfully for product ID: {}", id);
             return productMapper.toResponse(updatedProduct);
         } catch (ResourceNotFoundException | StockUpdateException e) {
             throw e;

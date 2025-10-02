@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
 
 @Data
 @Builder
@@ -14,6 +13,6 @@ import java.util.UUID;
 @AllArgsConstructor
 
 public class PurchaseProductItemDto {
-    private UUID productId;
+    private Long productId;
     private Integer quantity;
 }

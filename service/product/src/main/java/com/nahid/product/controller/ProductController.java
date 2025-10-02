@@ -55,7 +55,6 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<Page<ProductResponseDto>> getAllProducts(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        log.info("Received request to get all products with pagination: {}", pageable);
         Page<ProductResponseDto> response = productService.getAllProducts(pageable);
         return ResponseEntity.ok(response);
     }
@@ -63,7 +62,6 @@ public class ProductController {
     @GetMapping("/active")
     public ResponseEntity<Page<ProductResponseDto>> getActiveProducts(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        log.info("Received request to get active products with pagination: {}", pageable);
         Page<ProductResponseDto> response = productService.getActiveProducts(pageable);
         return ResponseEntity.ok(response);
     }

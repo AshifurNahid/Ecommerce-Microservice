@@ -15,57 +15,56 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@FieldDefaults(level = AccessLevel.PRIVATE)
 public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
+    private Long id;
 
     @Column(nullable = false)
-    String name;
+    private String name;
 
     @Column(columnDefinition = "TEXT")
-    String description;
+    private String description;
 
     @Column(nullable = false, unique = true, length = 100)
-    String sku;
+    private String sku;
 
     @Column(nullable = false, precision = 12, scale = 2)
-    BigDecimal price;
+    private BigDecimal price;
 
     @Column(name = "cost_price", precision = 12, scale = 2)
-    BigDecimal costPrice;
+    private BigDecimal costPrice;
 
     @Column(name = "stock_quantity", nullable = false)
-    Integer stockQuantity = 0;
+    private Integer stockQuantity = 0;
 
     @Column(name = "min_stock_level")
-    Integer minStockLevel = 0;
+    private Integer minStockLevel = 0;
 
 
     @Column(name = "brand")
-    String brand;
+    private String brand;
 
     @Column(precision = 8, scale = 3)
-    BigDecimal weight;
+    private BigDecimal weight;
 
     @Column(name = "is_active")
-    Boolean isActive = true;
+    private Boolean isActive = true;
 
     @Column(name = "is_featured")
-    Boolean isFeatured = false;
+    private Boolean isFeatured = false;
 
     @Column(name = "images_url")
-    String imageUrl;
+    private String imageUrl;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    LocalDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at")
-    LocalDateTime updatedAt;
+    private LocalDateTime updatedAt;
 
 
     @ManyToOne(fetch = FetchType.LAZY)

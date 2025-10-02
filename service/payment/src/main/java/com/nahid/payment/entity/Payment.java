@@ -15,7 +15,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "payments")
+@Table(name = "payments", indexes = {
+        @Index(name = "idx_payment_order_id", columnList = "order_id"),
+        @Index(name = "idx_payment_customer_id", columnList = "customer_id"),
+        @Index(name = "idx_payment_status", columnList = "status"),
+        @Index(name = "idx_payment_transaction_id", columnList = "transaction_id")
+})
 @Data
 @Builder
 @NoArgsConstructor
@@ -30,7 +35,7 @@ public class Payment {
     private UUID orderId;
 
     @Column(name = "customer_id", nullable = false)
-    private String customerId;
+    private Long userId;
 
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
@@ -50,10 +55,10 @@ public class Payment {
     private String transactionId;
 
     @Column(name = "customer_email", nullable = false)
-    private String customerEmail;
+    private String userEmail;
 
     @Column(name = "customer_phone")
-    private String customerPhone;
+    private String cuserPhone;
 
     @Column(name = "payment_gateway")
     private String paymentGateway;

@@ -17,7 +17,7 @@ public interface PaymentService {
 
     PaymentResponseDto getPaymentByOrderId(UUID orderId);
 
-    List<PaymentResponseDto> getPaymentsByCustomerId(String customerId);
+    List<PaymentResponseDto> getPaymentsByUserId(Long userId);
 
     List<PaymentResponseDto> getPaymentsByStatus(PaymentStatus status);
 
@@ -29,7 +29,7 @@ public interface PaymentService {
 
     PaymentResponseDto refundPayment(UUID paymentId, BigDecimal refundAmount);
 
-    BigDecimal getCustomerTotalPaidAmount(String customerId);
+    BigDecimal getUserTotalPaidAmount(Long userId);
 
     List<PaymentResponseDto> getRecentPayments();
 

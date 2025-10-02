@@ -5,7 +5,6 @@ import com.nahid.order.dto.request.PurchaseProductRequestDto;
 import com.nahid.order.dto.response.PurchaseProductResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -18,8 +17,9 @@ public class ProductClient {
     private String baseUrl ;
 
     private final RestTemplate restTemplate;
+
     public PurchaseProductResponseDto purchaseProduct(PurchaseProductRequestDto request) {
-        HttpHeaders headers = new HttpHeaders( );
+        HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
         HttpEntity<PurchaseProductRequestDto> entity = new HttpEntity<>(request, headers);
         //ParameterizedTypeReference<PurchaseProductResponseDto> responseType = new ParameterizedTypeReference<>() {};

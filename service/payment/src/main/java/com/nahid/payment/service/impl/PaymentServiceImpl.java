@@ -137,11 +137,11 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public BigDecimal getCustomerTotalPaidAmount(String customerId) {
-        log.info("Calculating total paid amount for customer: {}", customerId);
+    public BigDecimal getUserTotalPaidAmount(Long userId) {
+        log.info("Calculating total paid amount for customer: {}", userId);
 
-        BigDecimal totalAmount = paymentRepository.getTotalAmountByCustomerAndStatus(
-                customerId, PaymentStatus.COMPLETED);
+        BigDecimal totalAmount = paymentRepository.getTotalAmountByUserAndStatus(
+                userId, PaymentStatus.COMPLETED);
 
         return totalAmount != null ? totalAmount : BigDecimal.ZERO;
     }
@@ -254,10 +254,10 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PaymentResponseDto> getPaymentsByCustomerId(String customerId) {
-        log.info("Fetching payments for customer: {}", customerId);
+    public List<PaymentResponseDto> getPaymentsByUserId(Long userId) {
+        log.info("Fetching payments for customer: {}", userId);
 
-        List<Payment> payments = paymentRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
+        List<Payment> payments = paymentRepository.findByUserIdOrderByCreatedAtDesc(userId);
 
         return payments.stream()
                 .map(paymentMapper::toResponseDto)

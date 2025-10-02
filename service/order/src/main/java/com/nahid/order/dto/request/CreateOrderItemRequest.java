@@ -19,7 +19,7 @@ import java.util.UUID;
 public class CreateOrderItemRequest {
 
     @NotNull(message = "Product ID is required")
-    private UUID productId;
+    private Long productId;
 
     @NotBlank(message = "Product name is required")
     private String productName;

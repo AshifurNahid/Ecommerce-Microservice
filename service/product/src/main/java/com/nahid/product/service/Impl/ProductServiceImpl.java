@@ -105,6 +105,7 @@ public class ProductServiceImpl implements ProductService {
         log.debug("Fetching all products with pagination: {}", pageable);
 
         Page<Product> products = productRepository.findAll(pageable);
+        log.info("Found {} products", products.getTotalElements());
         return products.map(productMapper::toResponse);
     }
 
@@ -162,14 +163,10 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public ProductResponseDto updateProduct(Long id, UpdateProductRequestDto request) {
-        log.info("Updating product with ID: {}", id);
 
         try {
             Product existingProduct = productRepository.findById(id)
-                    .orElseThrow(() -> {
-                        log.error("Product with ID {} not found", id);
-                        return new ResourceNotFoundException("Product not found with ID: " + id);
-                    });
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
 
             if (request.getCategoryId() != null) {
                 Category category = categoryRepository.findById(request.getCategoryId())
@@ -218,7 +215,6 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public ProductResponseDto updateStock(Long id, Integer newStock) {
-        log.info("Delegating stock update to InventoryService for product ID: {}", id);
         try {
             return inventoryService.updateStock(id, newStock);
         } catch (Exception e) {

@@ -27,14 +27,13 @@ public class ProductPurchaseServiceImpl implements ProductPurchaseService {
                         .productId(item.getProductId())
                         .quantity(item.getQuantity())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
 
         PurchaseProductRequestDto purchaseRequest = PurchaseProductRequestDto.builder()
                 .orderReference(orderReference)
                 .items(items)
                 .build();
 
-        log.info("Calling product service to purchase products for order reference: {}", orderReference);
         return productClient.purchaseProduct(purchaseRequest);
     }
 

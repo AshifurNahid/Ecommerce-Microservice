@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -63,8 +62,7 @@ public class OrderServiceImpl implements OrderService {
                         OrderItem item = orderMapper.toEntity(itemRequest);
                         item.setTotalPrice(item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
                         return item;
-                    })
-                    .toList();
+                    }).toList();
 
             BigDecimal totalAmount = orderItems.stream()
                     .map(OrderItem::getTotalPrice)
@@ -146,6 +144,8 @@ public class OrderServiceImpl implements OrderService {
 
             order.setStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
+            publishOrderCancelledEvent( order);
+
 
         } catch (OrderProcessingException e) {
             throw e;
@@ -173,7 +173,7 @@ public class OrderServiceImpl implements OrderService {
 
     private void publishOrderCreatedEvent(Order order) {
         try {
-            OrderEventDto orderEvent = createOrderEvent(order, OrderStatus.CONFIRMED);
+            OrderEventDto orderEvent = createOrderEvent(order, order.getStatus());
             orderEventPublisher.publishOrderEvent(orderEvent);
         } catch (Exception e) {
             log.error("Failed to publish order created event for orderId {}: {}", order.getOrderId(), e.getMessage());
@@ -184,7 +184,8 @@ public class OrderServiceImpl implements OrderService {
         try {
             OrderEventDto orderEvent = createOrderEvent(order, OrderStatus.CANCELLED);
             orderEventPublisher.publishOrderEvent(orderEvent);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("Failed to publish order cancelled event for orderId {}: {}", order.getOrderId(), e.getMessage());
         }
     }
 
@@ -197,7 +198,13 @@ public class OrderServiceImpl implements OrderService {
                 .status(status)
                 .totalAmount(order.getTotalAmount())
                 .createdAt(order.getCreatedAt())
-                .eventType(status == OrderStatus.CANCELLED ? "ORDER_CANCELLED" : "ORDER_CREATED")
+                .eventType(resolveEventType(status))
                 .build();
+    }
+    private String resolveEventType(OrderStatus status) {
+        if (status == null) {
+            return "ORDER_UNKNOWN";
+        }
+        return "ORDER_" + status.name();
     }
 }

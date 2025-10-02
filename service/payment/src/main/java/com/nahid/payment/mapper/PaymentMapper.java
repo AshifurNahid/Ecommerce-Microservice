@@ -47,7 +47,7 @@ public interface PaymentMapper {
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "orderId", ignore = true)
-    @Mapping(target = "customerId", ignore = true)
+    @Mapping(target = "userId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntity(@MappingTarget Payment payment, PaymentRequestDto requestDto);
