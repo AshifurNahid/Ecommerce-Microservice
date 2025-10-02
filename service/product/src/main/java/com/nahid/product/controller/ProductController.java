@@ -7,7 +7,6 @@ import com.nahid.product.util.constant.ApiResponseConstant;
 import com.nahid.product.util.helper.ApiResponseUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -22,21 +21,18 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
-@Slf4j
 public class ProductController {
 
     private final ProductService productService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<ProductResponseDto>> createProduct(@Valid @RequestBody CreateProductRequestDto request) {
-        log.info("Received request to create product with SKU: {}", request.getSku());
         ProductResponseDto response = productService.createProduct(request);
         return ApiResponseUtil.success(response, ApiResponseConstant.PRODUCT_CREATED_SUCCESSFULLY, HttpStatus.CREATED);
     }
 
     @PostMapping("/purchase")
     public ResponseEntity<ApiResponse<PurchaseProductResponseDto>> purchaseProduct(@Valid @RequestBody PurchaseProductRequestDto request) {
-        log.info("Received purchase request for order reference: {}", request.getOrderReference());
         PurchaseProductResponseDto response = productService.processPurchase(request);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.CONFLICT;
         if (response.isSuccess()) {
@@ -47,14 +43,12 @@ public class ProductController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductResponseDto>> getProductById(@PathVariable Long id) {
-        log.info("Received request to get product with ID: {}", id);
         ProductResponseDto response = productService.getProductById(id);
         return ApiResponseUtil.success(response, ApiResponseConstant.PRODUCT_FETCHED_SUCCESSFULLY);
     }
 
     @GetMapping("/sku/{sku}")
     public ResponseEntity<ApiResponse<ProductResponseDto>> getProductBySku(@PathVariable String sku) {
-        log.info("Received request to get product with SKU: {}", sku);
         ProductResponseDto response = productService.getProductBySku(sku);
         return ApiResponseUtil.success(response, ApiResponseConstant.PRODUCT_FETCHED_SUCCESSFULLY);
     }
@@ -77,7 +71,6 @@ public class ProductController {
     public ResponseEntity<ApiResponse<Page<ProductResponseDto>>> getProductsByCategory(
             @PathVariable Long categoryId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        log.info("Received request to get products by category ID: {} with pagination: {}", categoryId, pageable);
         Page<ProductResponseDto> response = productService.getProductsByCategory(categoryId, pageable);
         return ApiResponseUtil.success(response, ApiResponseConstant.PRODUCTS_BY_CATEGORY_FETCHED);
     }
@@ -90,21 +83,18 @@ public class ProductController {
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) Long categoryId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        log.info("Received request to search products with filters");
         Page<ProductResponseDto> response = productService.searchProducts(name, brand, minPrice, maxPrice, categoryId, pageable);
         return ApiResponseUtil.success(response, ApiResponseConstant.PRODUCTS_SEARCHED_SUCCESSFULLY);
     }
 
     @GetMapping("/featured")
     public ResponseEntity<ApiResponse<List<ProductResponseDto>>> getFeaturedProducts() {
-        log.info("Received request to get featured products");
         List<ProductResponseDto> response = productService.getFeaturedProducts();
         return ApiResponseUtil.success(response, ApiResponseConstant.FEATURED_PRODUCTS_FETCHED);
     }
 
     @GetMapping("/low-stock")
     public ResponseEntity<ApiResponse<List<ProductResponseDto>>> getLowStockProducts() {
-        log.info("Received request to get low stock products");
         List<ProductResponseDto> response = productService.getLowStockProducts();
         return ApiResponseUtil.success(response, ApiResponseConstant.LOW_STOCK_PRODUCTS_FETCHED);
     }
@@ -113,14 +103,12 @@ public class ProductController {
     public ResponseEntity<ApiResponse<ProductResponseDto>> updateProduct(
             @PathVariable Long id,
             @Valid @RequestBody UpdateProductRequestDto request) {
-        log.info("Received request to update product with ID: {}", id);
         ProductResponseDto response = productService.updateProduct(id, request);
         return ApiResponseUtil.success(response, ApiResponseConstant.PRODUCT_UPDATED_SUCCESSFULLY);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long id) {
-        log.info("Received request to delete product with ID: {}", id);
         productService.deleteProduct(id);
         return ApiResponseUtil.success(null, ApiResponseConstant.PRODUCT_DELETED_SUCCESSFULLY, HttpStatus.NO_CONTENT);
     }
@@ -129,7 +117,6 @@ public class ProductController {
     public ResponseEntity<ApiResponse<ProductResponseDto>> updateStock(
             @PathVariable Long id,
             @RequestParam Integer stock) {
-        log.info("Received request to update stock for product ID: {} to quantity: {}", id, stock);
         ProductResponseDto response = productService.updateStock(id, stock);
         return ApiResponseUtil.success(response, ApiResponseConstant.PRODUCT_STOCK_UPDATED_SUCCESSFULLY);
     }
@@ -138,7 +125,6 @@ public class ProductController {
     public ResponseEntity<ApiResponse<Boolean>> checkProductAvailability(
             @PathVariable Long id,
             @RequestParam Integer quantity) {
-        log.info("Received request to check availability for product ID: {} with quantity: {}", id, quantity);
         boolean isAvailable = productService.isProductAvailable(id, quantity);
         return ApiResponseUtil.success(isAvailable, ApiResponseConstant.PRODUCT_AVAILABILITY_CHECKED);
     }
