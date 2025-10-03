@@ -35,13 +35,26 @@ public class ProductController {
         return ApiResponseUtil.success(response, ApiResponseConstant.PRODUCT_CREATED_SUCCESSFULLY, HttpStatus.CREATED);
     }
 
-    @PostMapping("/purchase")
-    public ResponseEntity<ApiResponse<PurchaseProductResponseDto>> purchaseProduct(@Valid @RequestBody PurchaseProductRequestDto request) {
-        PurchaseProductResponseDto response = productService.processPurchase(request);
+    @PostMapping("/inventory/reservations")
+    public ResponseEntity<ApiResponse<PurchaseProductResponseDto>> reserveInventory(@Valid @RequestBody PurchaseProductRequestDto request) {
+        PurchaseProductResponseDto response = productService.reserveInventory(request);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.CONFLICT;
-        return ApiResponseUtil.success(response, response.getMessage(), status);
+        String message = response.isSuccess()
+                ? ApiResponseConstant.INVENTORY_RESERVED_SUCCESSFULLY
+                : ApiResponseConstant.INVENTORY_RESERVATION_FAILED;
+        return ApiResponseUtil.success(response, message, status);
+    }
 
+    @PostMapping("/inventory/reservations/{orderReference}/confirm")
+    public ResponseEntity<ApiResponse<Void>> confirmReservation(@PathVariable String orderReference) {
+        productService.confirmReservation(orderReference);
+        return ApiResponseUtil.success(null, ApiResponseConstant.INVENTORY_RESERVATION_CONFIRMED, HttpStatus.OK);
+    }
 
+    @PostMapping("/inventory/reservations/{orderReference}/release")
+    public ResponseEntity<ApiResponse<Void>> releaseReservation(@PathVariable String orderReference) {
+        productService.releaseReservation(orderReference);
+        return ApiResponseUtil.success(null, ApiResponseConstant.INVENTORY_RESERVATION_RELEASED, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")

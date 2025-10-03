@@ -18,15 +18,12 @@ public class ProductClient {
 
     private final RestTemplate restTemplate;
 
-    public PurchaseProductResponseDto purchaseProduct(PurchaseProductRequestDto request) {
+    public PurchaseProductResponseDto reserveInventory(PurchaseProductRequestDto request) {
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
         HttpEntity<PurchaseProductRequestDto> entity = new HttpEntity<>(request, headers);
-        //ParameterizedTypeReference<PurchaseProductResponseDto> responseType = new ParameterizedTypeReference<>() {};
-
-        // ParameterizedTypeReference is needed when the response type is not known at compile time also for the list of objects, map, etc.
         ResponseEntity< PurchaseProductResponseDto> responseEntity = restTemplate.exchange(
-                baseUrl + "/api/v1/products/purchase",
+                baseUrl + "/api/v1/products/inventory/reservations",
                 HttpMethod.POST,
                 entity,
                 PurchaseProductResponseDto.class
@@ -34,8 +31,24 @@ public class ProductClient {
         if (responseEntity.getStatusCode() == HttpStatus.OK) {
             return responseEntity.getBody();
         } else {
-            throw new RuntimeException("Failed to purchase product: " + responseEntity.getStatusCode());
+            throw new RuntimeException("Failed to reserve inventory: " + responseEntity.getStatusCode());
         }
+    }
+
+    public void confirmReservation(String orderReference) {
+        restTemplate.postForEntity(
+                baseUrl + "/api/v1/products/inventory/reservations/" + orderReference + "/confirm",
+                null,
+                Void.class
+        );
+    }
+
+    public void releaseReservation(String orderReference) {
+        restTemplate.postForEntity(
+                baseUrl + "/api/v1/products/inventory/reservations/" + orderReference + "/release",
+                null,
+                Void.class
+        );
     }
 
 }
