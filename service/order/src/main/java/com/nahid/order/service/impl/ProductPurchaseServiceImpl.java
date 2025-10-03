@@ -6,6 +6,7 @@ import com.nahid.order.dto.request.PurchaseProductItemDto;
 import com.nahid.order.dto.request.PurchaseProductRequestDto;
 import com.nahid.order.dto.response.ApiResponse;
 import com.nahid.order.dto.response.PurchaseProductResponseDto;
+import com.nahid.order.exception.OrderProcessingException;
 import com.nahid.order.service.ProductPurchaseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,24 +26,26 @@ public class ProductPurchaseServiceImpl implements ProductPurchaseService {
 
     @Override
     public PurchaseProductResponseDto reserveProducts(CreateOrderRequest request, String orderReference) {
-        List<PurchaseProductItemDto> items = request.getOrderItems().stream()
-                .map(item -> PurchaseProductItemDto.builder()
-                        .productId(item.getProductId())
-                        .quantity(item.getQuantity())
-                        .build())
-                .toList();
 
         PurchaseProductRequestDto purchaseRequest = PurchaseProductRequestDto.builder()
                 .orderReference(orderReference)
-                .items(items)
+                .items(request.getOrderItems().stream()
+                        .map(item -> PurchaseProductItemDto.builder()
+                                .productId(item.getProductId())
+                                .quantity(item.getQuantity())
+                                .build())
+                        .toList())
                 .build();
 
-        ResponseEntity<ApiResponse<PurchaseProductResponseDto>> responseEntity =
-                productClient.reserveInventory(purchaseRequest);
+        ResponseEntity<ApiResponse<PurchaseProductResponseDto>> responseEntity = productClient.reserveInventory(purchaseRequest);
         ApiResponse<PurchaseProductResponseDto> apiResponse =
                 responseEntity != null ? responseEntity.getBody() : null;
 
-        return mapReservationResponse(apiResponse, orderReference);
+        if (apiResponse == null || apiResponse.getData() == null) {
+            throw new OrderProcessingException(" failed to reserve inventory with orderReference " + orderReference);
+        }
+
+        return apiResponse.getData();
     }
 
     @Override
@@ -82,39 +85,6 @@ public class ProductPurchaseServiceImpl implements ProductPurchaseService {
         return errorBuilder.toString();
     }
 
-    private PurchaseProductResponseDto mapReservationResponse(ApiResponse<PurchaseProductResponseDto> apiResponse,
-                                                              String orderReference) {
-        if (apiResponse == null) {
-            log.error("Received null response from product service for orderReference {}", orderReference);
-            return buildFailureResponse("Failed to reserve inventory: no response from product service", orderReference);
-        }
 
-        PurchaseProductResponseDto response = apiResponse.getData();
-        if (response == null) {
-            log.error("Product service returned empty reservation data for orderReference {}", orderReference);
-            return buildFailureResponse(apiResponse.getMessage(), orderReference);
-        }
-
-        response.setSuccess(apiResponse.isSuccess());
-        if (response.getMessage() == null || response.getMessage().isBlank()) {
-            response.setMessage(apiResponse.getMessage());
-        }
-        if (response.getOrderReference() == null) {
-            response.setOrderReference(orderReference);
-        }
-        if (response.getItems() == null) {
-            response.setItems(Collections.emptyList());
-        }
-        return response;
-    }
-
-    private PurchaseProductResponseDto buildFailureResponse(String message, String orderReference) {
-        return PurchaseProductResponseDto.builder()
-                .success(false)
-                .message(message != null ? message : "Failed to reserve inventory")
-                .orderReference(orderReference)
-                .items(Collections.emptyList())
-                .build();
-    }
 }
 

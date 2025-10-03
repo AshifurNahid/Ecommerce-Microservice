@@ -45,7 +45,7 @@ public class InventoryReservation {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<InventoryReservationItem> items = new ArrayList<>();
 
     public static InventoryReservation createNew(String orderReference) {
