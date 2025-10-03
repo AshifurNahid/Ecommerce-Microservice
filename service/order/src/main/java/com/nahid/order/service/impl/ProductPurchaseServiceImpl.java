@@ -4,14 +4,18 @@ import com.nahid.order.client.ProductClient;
 import com.nahid.order.dto.request.CreateOrderRequest;
 import com.nahid.order.dto.request.PurchaseProductItemDto;
 import com.nahid.order.dto.request.PurchaseProductRequestDto;
+import com.nahid.order.dto.response.ApiResponse;
 import com.nahid.order.dto.response.PurchaseProductResponseDto;
+import com.nahid.order.exception.OrderProcessingException;
 import com.nahid.order.service.ProductPurchaseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import org.springframework.http.ResponseEntity;
+
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,19 +26,26 @@ public class ProductPurchaseServiceImpl implements ProductPurchaseService {
 
     @Override
     public PurchaseProductResponseDto reserveProducts(CreateOrderRequest request, String orderReference) {
-        List<PurchaseProductItemDto> items = request.getOrderItems().stream()
-                .map(item -> PurchaseProductItemDto.builder()
-                        .productId(item.getProductId())
-                        .quantity(item.getQuantity())
-                        .build())
-                .toList();
 
         PurchaseProductRequestDto purchaseRequest = PurchaseProductRequestDto.builder()
                 .orderReference(orderReference)
-                .items(items)
+                .items(request.getOrderItems().stream()
+                        .map(item -> PurchaseProductItemDto.builder()
+                                .productId(item.getProductId())
+                                .quantity(item.getQuantity())
+                                .build())
+                        .toList())
                 .build();
 
-        return productClient.reserveInventory(purchaseRequest);
+        ResponseEntity<ApiResponse<PurchaseProductResponseDto>> responseEntity = productClient.reserveInventory(purchaseRequest);
+        ApiResponse<PurchaseProductResponseDto> apiResponse =
+                responseEntity != null ? responseEntity.getBody() : null;
+
+        if (apiResponse == null || apiResponse.getData() == null) {
+            throw new OrderProcessingException(" failed to reserve inventory with orderReference " + orderReference);
+        }
+
+        return apiResponse.getData();
     }
 
     @Override
@@ -73,5 +84,7 @@ public class ProductPurchaseServiceImpl implements ProductPurchaseService {
 
         return errorBuilder.toString();
     }
+
+
 }
 

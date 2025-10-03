@@ -37,11 +37,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public PurchaseProductResponseDto reserveInventory(PurchaseProductRequestDto request) {
         if (request.getItems() == null || request.getItems().isEmpty()) {
-            return PurchaseProductResponseDto.builder()
-                    .success(false)
-                    .message("Reservation request contains no items")
-                    .orderReference(request.getOrderReference())
-                    .build();
+            throw new IllegalArgumentException("Reservation request contains no items");
         }
 
         InventoryReservation reservation = reservationRepository.findByOrderReference(request.getOrderReference())
