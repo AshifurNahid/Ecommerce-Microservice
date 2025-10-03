@@ -18,8 +18,10 @@ public final class ApiResponseConstant {
     public static final String PRODUCT_DELETED_SUCCESSFULLY = "Product deleted successfully";
     public static final String PRODUCT_STOCK_UPDATED_SUCCESSFULLY = "Product stock updated successfully";
     public static final String PRODUCT_AVAILABILITY_CHECKED = "Product availability checked successfully";
-    public static final String PURCHASE_PROCESSED_SUCCESSFULLY = "Purchase processed successfully";
-    public static final String PURCHASE_FAILED = "Purchase request could not be completed";
+    public static final String INVENTORY_RESERVED_SUCCESSFULLY = "Inventory reserved successfully";
+    public static final String INVENTORY_RESERVATION_FAILED = "Inventory reservation could not be completed";
+    public static final String INVENTORY_RESERVATION_CONFIRMED = "Inventory reservation confirmed";
+    public static final String INVENTORY_RESERVATION_RELEASED = "Inventory reservation released";
 
     public static final String CATEGORY_CREATED_SUCCESSFULLY = "Category created successfully";
     public static final String CATEGORY_FETCHED_SUCCESSFULLY = "Category fetched successfully";

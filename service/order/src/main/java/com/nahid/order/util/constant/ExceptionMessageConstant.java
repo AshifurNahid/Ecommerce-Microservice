@@ -33,5 +33,5 @@ public class ExceptionMessageConstant {
     public static final String USER_VALIDATION_FAILED = "User validation failed for ID: %s";
 
     // Product-related Exception Messages
-    public static final String PRODUCT_PURCHASE_FAILED = "Product purchase failed: %s";
+    public static final String PRODUCT_RESERVATION_FAILED = "Product reservation failed: %s";
 }

@@ -41,18 +41,23 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderDto createOrder(CreateOrderRequest request) {
+        String orderNumber = null;
+        boolean reservationCreated = false;
+        boolean reservationConfirmed = false;
 
         try {
             userValidationService.validateUserForOrder(request.getUserId());
 
-            String orderNumber = orderNumberService.generateOrderNumber();
+            orderNumber = orderNumberService.generateOrderNumber();
 
-            PurchaseProductResponseDto purchaseResponse = productPurchaseService.purchaseProducts(request, orderNumber);
+            PurchaseProductResponseDto reservationResponse = productPurchaseService.reserveProducts(request, orderNumber);
 
-            if (purchaseResponse == null || !purchaseResponse.isSuccess()) {
-                String errorMessage = productPurchaseService.formatPurchaseError(purchaseResponse);
-                throw new OrderProcessingException(String.format(ExceptionMessageConstant.PRODUCT_PURCHASE_FAILED, errorMessage));
+            if (reservationResponse == null || !reservationResponse.isSuccess()) {
+                String errorMessage = productPurchaseService.formatReservationError(reservationResponse);
+                throw new OrderProcessingException(String.format(ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED, errorMessage));
             }
+            reservationCreated = true;
+
             Order order = orderMapper.toEntity(request);
             order.setOrderNumber(orderNumber);
             order.setStatus(OrderStatus.PENDING);
@@ -75,13 +80,29 @@ public class OrderServiceImpl implements OrderService {
             }
 
             Order savedOrder = orderRepository.save(order);
+            productPurchaseService.confirmReservation(orderNumber);
+            reservationConfirmed = true;
             publishOrderCreatedEvent(savedOrder);
             return orderMapper.toDto(savedOrder);
 
         } catch (OrderProcessingException e) {
+            if (reservationCreated && !reservationConfirmed && orderNumber != null) {
+                safeReleaseReservation(orderNumber);
+            }
             throw e;
         } catch (Exception e) {
+            if (reservationCreated && !reservationConfirmed && orderNumber != null) {
+                safeReleaseReservation(orderNumber);
+            }
             throw new OrderProcessingException(String.format(ExceptionMessageConstant.ORDER_CREATION_FAILED, e.getMessage()), e);
+        }
+    }
+
+    private void safeReleaseReservation(String orderNumber) {
+        try {
+            productPurchaseService.releaseReservation(orderNumber);
+        } catch (Exception releaseException) {
+            log.error("Failed to release inventory reservation for order {}: {}", orderNumber, releaseException.getMessage());
         }
     }
 
