@@ -5,7 +5,12 @@ import com.nahid.order.dto.response.PurchaseProductResponseDto;
 
 public interface ProductPurchaseService {
 
-    PurchaseProductResponseDto purchaseProducts(CreateOrderRequest request, String orderReference);
-    String formatPurchaseError(PurchaseProductResponseDto response);
+    PurchaseProductResponseDto reserveProducts(CreateOrderRequest request, String orderReference);
+
+    void confirmReservation(String orderReference);
+
+    void releaseReservation(String orderReference);
+
+    String formatReservationError(PurchaseProductResponseDto response);
 }
 

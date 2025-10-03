@@ -32,6 +32,10 @@ public interface ProductService {
     ProductResponseDto updateStock(Long id, Integer newStock);
     boolean isProductAvailable(Long id, Integer requiredQuantity);
 
-    // Purchase operations
-    PurchaseProductResponseDto processPurchase(PurchaseProductRequestDto request);
+    // Reservation operations
+    PurchaseProductResponseDto reserveInventory(PurchaseProductRequestDto request);
+
+    void confirmReservation(String orderReference);
+
+    void releaseReservation(String orderReference);
 }

@@ -21,7 +21,7 @@ public class ProductPurchaseServiceImpl implements ProductPurchaseService {
     private final ProductClient productClient;
 
     @Override
-    public PurchaseProductResponseDto purchaseProducts(CreateOrderRequest request, String orderReference) {
+    public PurchaseProductResponseDto reserveProducts(CreateOrderRequest request, String orderReference) {
         List<PurchaseProductItemDto> items = request.getOrderItems().stream()
                 .map(item -> PurchaseProductItemDto.builder()
                         .productId(item.getProductId())
@@ -34,11 +34,21 @@ public class ProductPurchaseServiceImpl implements ProductPurchaseService {
                 .items(items)
                 .build();
 
-        return productClient.purchaseProduct(purchaseRequest);
+        return productClient.reserveInventory(purchaseRequest);
     }
 
     @Override
-    public String formatPurchaseError(PurchaseProductResponseDto response) {
+    public void confirmReservation(String orderReference) {
+        productClient.confirmReservation(orderReference);
+    }
+
+    @Override
+    public void releaseReservation(String orderReference) {
+        productClient.releaseReservation(orderReference);
+    }
+
+    @Override
+    public String formatReservationError(PurchaseProductResponseDto response) {
         StringBuilder errorBuilder = new StringBuilder();
 
         if (response != null) {
