@@ -4,7 +4,11 @@ import com.nahid.product.dto.request.PurchaseProductItemDto;
 import com.nahid.product.dto.request.PurchaseProductRequestDto;
 import com.nahid.product.dto.response.PurchaseProductItemResultDto;
 import com.nahid.product.dto.response.PurchaseProductResponseDto;
+import com.nahid.product.entity.InventoryReservation;
+import com.nahid.product.entity.InventoryReservationItem;
 import com.nahid.product.entity.Product;
+import com.nahid.product.enums.ReservationStatus;
+import com.nahid.product.repository.InventoryReservationRepository;
 import com.nahid.product.repository.ProductRepository;
 import com.nahid.product.service.PurchaseService;
 import lombok.RequiredArgsConstructor;
@@ -14,10 +18,8 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,107 +28,187 @@ import java.util.stream.Collectors;
 @Transactional(rollbackFor = Exception.class)
 public class PurchaseServiceImpl implements PurchaseService {
 
+    private static final int DEFAULT_RESERVATION_MINUTES = 15;
+
     private final ProductRepository productRepository;
+    private final InventoryReservationRepository reservationRepository;
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED,  rollbackFor = Exception.class)
-    public PurchaseProductResponseDto processPurchase(PurchaseProductRequestDto request) {
-
-        try {
-            if (request.getItems() == null || request.getItems().isEmpty()) {
-                return PurchaseProductResponseDto.builder()
-                        .success(false)
-                        .message("Purchase request contains no items")
-                        .orderReference(request.getOrderReference())
-                        .build();
-            }
-
-            List<Long> productIds = request.getItems().stream()
-                    .map(PurchaseProductItemDto::getProductId)
-                    .toList();
-
-            List<Product> products = productRepository.findAllById(productIds);
-            Map<Long, Product> productsById = new HashMap<>();
-            for (Product product : products) {
-                productsById.put(product.getId(), product);
-            }
-
-            List<PurchaseProductItemResultDto> itemResults = new ArrayList<>();
-            boolean allProductsAvailable = true;
-
-            for (PurchaseProductItemDto item : request.getItems()) {
-                Product product = productsById.get(item.getProductId());
-                PurchaseProductItemResultDto result = buildResultItem(item, product);
-                itemResults.add(result);
-                if (!result.isAvailable()) {
-                    allProductsAvailable = false;
-                }
-            }
-
-            if (allProductsAvailable) {
-                updateInventory(request.getItems(), productsById);
-            }
-
-            return PurchaseProductResponseDto.builder()
-                    .success(allProductsAvailable)
-                    .message(allProductsAvailable ? "All products reserved successfully" : "One or more products are unavailable")
-                    .orderReference(request.getOrderReference())
-                    .items(itemResults)
-                    .build();
-        } catch (Exception e) {
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    public PurchaseProductResponseDto reserveInventory(PurchaseProductRequestDto request) {
+        if (request.getItems() == null || request.getItems().isEmpty()) {
             return PurchaseProductResponseDto.builder()
                     .success(false)
-                    .message("Purchase failed: " + e.getMessage())
+                    .message("Reservation request contains no items")
                     .orderReference(request.getOrderReference())
                     .build();
         }
-    }
 
-    private void updateInventory(List<PurchaseProductItemDto> items, Map<Long, Product> productsById) {
-        items.forEach(item -> {
+        InventoryReservation reservation = reservationRepository.findByOrderReference(request.getOrderReference())
+                .orElseGet(() -> InventoryReservation.createNew(request.getOrderReference()));
+
+        if (reservation.getStatus() == ReservationStatus.CONFIRMED) {
+            return buildSuccessResponse("Inventory already confirmed", reservation);
+        }
+
+        if (reservation.getId() != null
+                && reservation.getStatus() == ReservationStatus.RESERVED
+                && !reservation.getItems().isEmpty()) {
+            return buildSuccessResponse("Inventory already reserved", reservation);
+        }
+
+        List<Long> productIds = request.getItems().stream()
+                .map(PurchaseProductItemDto::getProductId)
+                .toList();
+
+        List<Product> products = productIds.isEmpty()
+                ? List.of()
+                : productRepository.findAllByIdInForUpdate(productIds);
+
+        Map<Long, Product> productsById = products.stream()
+                .collect(Collectors.toMap(Product::getId, product -> product));
+
+        List<PurchaseProductItemResultDto> itemResults = new ArrayList<>();
+        boolean allAvailable = true;
+
+        for (PurchaseProductItemDto item : request.getItems()) {
+            Product product = productsById.get(item.getProductId());
+            PurchaseProductItemResultDto result = buildResultItem(item, product);
+            itemResults.add(result);
+            if (!result.isAvailable()) {
+                allAvailable = false;
+            }
+        }
+
+        if (!allAvailable) {
+            return PurchaseProductResponseDto.builder()
+                    .success(false)
+                    .message("One or more products are unavailable")
+                    .orderReference(request.getOrderReference())
+                    .items(itemResults)
+                    .build();
+        }
+
+        // reserve inventory atomically
+        request.getItems().forEach(item -> {
             Product product = productsById.get(item.getProductId());
             int newStock = product.getStockQuantity() - item.getQuantity();
-
             if (newStock < 0) {
-                throw new IllegalStateException("Cannot set negative stock for product: " + product.getName());
+                throw new IllegalStateException("Cannot reserve more stock than available for product: " + product.getName());
             }
-
             product.setStockQuantity(newStock);
-            productRepository.save(product);
         });
+        productRepository.saveAll(products);
+
+        reservation.getItems().clear();
+        request.getItems().forEach(item -> {
+            Product product = productsById.get(item.getProductId());
+            InventoryReservationItem reservationItem = InventoryReservationItem.builder()
+                    .productId(product.getId())
+                    .reservedQuantity(item.getQuantity())
+                    .unitPrice(product.getPrice())
+                    .productName(product.getName())
+                    .sku(product.getSku())
+                    .build();
+            reservation.addItem(reservationItem);
+        });
+        reservation.setStatus(ReservationStatus.RESERVED);
+        reservation.setExpiresAt(LocalDateTime.now().plusMinutes(DEFAULT_RESERVATION_MINUTES));
+        reservationRepository.save(reservation);
+
+        return PurchaseProductResponseDto.builder()
+                .success(true)
+                .message("Inventory reserved successfully")
+                .orderReference(request.getOrderReference())
+                .items(itemResults)
+                .build();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void confirmReservation(String orderReference) {
+        reservationRepository.findByOrderReference(orderReference)
+                .ifPresent(reservation -> {
+                    if (reservation.getStatus() != ReservationStatus.CONFIRMED) {
+                        reservation.setStatus(ReservationStatus.CONFIRMED);
+                        reservation.setExpiresAt(null);
+                        reservationRepository.save(reservation);
+                    }
+                });
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    public void releaseReservation(String orderReference) {
+        reservationRepository.findByOrderReference(orderReference)
+                .ifPresent(reservation -> {
+                    if (reservation.getStatus() != ReservationStatus.RESERVED) {
+                        return;
+                    }
+                    List<Long> productIds = reservation.getItems().stream()
+                            .map(InventoryReservationItem::getProductId)
+                            .toList();
+                    if (!productIds.isEmpty()) {
+                        List<Product> products = productRepository.findAllByIdInForUpdate(productIds);
+                        Map<Long, Product> productsById = products.stream()
+                                .collect(Collectors.toMap(Product::getId, product -> product));
+                        reservation.getItems().forEach(item -> {
+                            Product product = productsById.get(item.getProductId());
+                            if (product != null) {
+                                product.setStockQuantity(product.getStockQuantity() + item.getReservedQuantity());
+                            }
+                        });
+                        productRepository.saveAll(products);
+                    }
+                    reservation.setStatus(ReservationStatus.RELEASED);
+                    reservation.setExpiresAt(null);
+                    reservationRepository.save(reservation);
+                });
     }
 
     private PurchaseProductItemResultDto buildResultItem(PurchaseProductItemDto item, Product product) {
         if (product == null) {
-            return createUnavailableResult(item, "Product not found");
+            return PurchaseProductItemResultDto.builder()
+                    .productId(item.getProductId())
+                    .requestedQuantity(item.getQuantity())
+                    .availableQuantity(0)
+                    .available(false)
+                    .message("Product not found")
+                    .build();
         }
 
-        boolean isAvailable = product.getIsActive() && product.getStockQuantity() >= item.getQuantity();
-        String message = "";
-        if (!isAvailable) {
-            message = product.getIsActive() ? "Insufficient stock available" : "Product is inactive";
-        }
-
+        boolean available = Boolean.TRUE.equals(product.getIsActive()) && product.getStockQuantity() >= item.getQuantity();
         return PurchaseProductItemResultDto.builder()
                 .productId(product.getId())
                 .productName(product.getName())
                 .sku(product.getSku())
-                .price(product.getPrice())
                 .requestedQuantity(item.getQuantity())
                 .availableQuantity(product.getStockQuantity())
-                .available(isAvailable)
-                .message(message)
+                .price(product.getPrice())
+                .available(available)
+                .message(available ? "" : (Boolean.TRUE.equals(product.getIsActive()) ? "Insufficient stock available" : "Product is inactive"))
                 .build();
     }
 
-    private PurchaseProductItemResultDto createUnavailableResult(PurchaseProductItemDto item, String message) {
-        return PurchaseProductItemResultDto.builder()
-                .productId(item.getProductId())
-                .requestedQuantity(item.getQuantity())
-                .available(false)
+    private PurchaseProductResponseDto buildSuccessResponse(String message, InventoryReservation reservation) {
+        List<PurchaseProductItemResultDto> itemResults = reservation.getItems().stream()
+                .map(item -> PurchaseProductItemResultDto.builder()
+                        .productId(item.getProductId())
+                        .productName(item.getProductName())
+                        .sku(item.getSku())
+                        .requestedQuantity(item.getReservedQuantity())
+                        .availableQuantity(item.getReservedQuantity())
+                        .price(item.getUnitPrice())
+                        .available(true)
+                        .message("")
+                        .build())
+                .toList();
+
+        return PurchaseProductResponseDto.builder()
+                .success(true)
                 .message(message)
+                .orderReference(reservation.getOrderReference())
+                .items(itemResults)
                 .build();
     }
-
-
 }

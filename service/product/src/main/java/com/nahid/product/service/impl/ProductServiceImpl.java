@@ -179,8 +179,19 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public PurchaseProductResponseDto processPurchase(PurchaseProductRequestDto request) {
-        return purchaseService.processPurchase(request);
+    public PurchaseProductResponseDto reserveInventory(PurchaseProductRequestDto request) {
+        return purchaseService.reserveInventory(request);
     }
 
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void confirmReservation(String orderReference) {
+        purchaseService.confirmReservation(orderReference);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void releaseReservation(String orderReference) {
+        purchaseService.releaseReservation(orderReference);
+    }
 }
