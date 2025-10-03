@@ -1,4 +1,4 @@
-package com.nahid.product.service.Impl;
+package com.nahid.product.service.impl;
 
 import com.nahid.product.dto.request.PurchaseProductItemDto;
 import com.nahid.product.dto.request.PurchaseProductRequestDto;
@@ -29,14 +29,11 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final ProductRepository productRepository;
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.REPEATABLE_READ, rollbackFor = Exception.class)
+    @Transactional(propagation = Propagation.REQUIRED,  rollbackFor = Exception.class)
     public PurchaseProductResponseDto processPurchase(PurchaseProductRequestDto request) {
-        log.info("Processing purchase with order reference: {}", request.getOrderReference());
 
         try {
-            // Validate input
             if (request.getItems() == null || request.getItems().isEmpty()) {
-                log.warn("Purchase request contains no items for order reference: {}", request.getOrderReference());
                 return PurchaseProductResponseDto.builder()
                         .success(false)
                         .message("Purchase request contains no items")
@@ -46,7 +43,7 @@ public class PurchaseServiceImpl implements PurchaseService {
 
             List<Long> productIds = request.getItems().stream()
                     .map(PurchaseProductItemDto::getProductId)
-                    .collect(Collectors.toList());
+                    .toList();
 
             List<Product> products = productRepository.findAllById(productIds);
             Map<Long, Product> productsById = new HashMap<>();
@@ -77,7 +74,6 @@ public class PurchaseServiceImpl implements PurchaseService {
                     .items(itemResults)
                     .build();
         } catch (Exception e) {
-            log.error("Error processing purchase for order reference {}: {}", request.getOrderReference(), e.getMessage(), e);
             return PurchaseProductResponseDto.builder()
                     .success(false)
                     .message("Purchase failed: " + e.getMessage())
@@ -91,21 +87,17 @@ public class PurchaseServiceImpl implements PurchaseService {
             Product product = productsById.get(item.getProductId());
             int newStock = product.getStockQuantity() - item.getQuantity();
 
-            // Prevent negative stock
             if (newStock < 0) {
-                log.error("Attempt to set negative stock for product ID {}", product.getId());
                 throw new IllegalStateException("Cannot set negative stock for product: " + product.getName());
             }
 
             product.setStockQuantity(newStock);
             productRepository.save(product);
-            log.debug("Updated stock for product ID: {} to quantity: {}", product.getId(), newStock);
         });
     }
 
     private PurchaseProductItemResultDto buildResultItem(PurchaseProductItemDto item, Product product) {
         if (product == null) {
-            log.warn("Product not found with ID: {}", item.getProductId());
             return createUnavailableResult(item, "Product not found");
         }
 
@@ -113,7 +105,6 @@ public class PurchaseServiceImpl implements PurchaseService {
         String message = "";
         if (!isAvailable) {
             message = product.getIsActive() ? "Insufficient stock available" : "Product is inactive";
-            log.warn("Product {} (ID: {}) is unavailable: {}", product.getName(), product.getId(), message);
         }
 
         return PurchaseProductItemResultDto.builder()

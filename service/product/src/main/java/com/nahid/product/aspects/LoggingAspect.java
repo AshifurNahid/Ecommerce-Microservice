@@ -1,12 +1,13 @@
-package com.nahid.product.logging;
+package com.nahid.product.aspects;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -15,15 +16,15 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
 
-@Slf4j
+
 @Aspect
 @Component
 public class LoggingAspect {
 
+    private static final Logger log = LoggerFactory.getLogger(LoggingAspect.class);
+
     @Pointcut("within(com.nahid.product.controller..*)")
-    public void controllerMethods() {
-        // Pointcut for controller methods
-    }
+    public void controllerMethods() {}
 
     @Around("controllerMethods()")
     public Object logControllerMethods(ProceedingJoinPoint joinPoint) throws Throwable {

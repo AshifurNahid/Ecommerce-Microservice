@@ -1,4 +1,4 @@
-package com.nahid.product.service.Impl;
+package com.nahid.product.service.impl;
 
 import com.nahid.product.dto.request.CreateProductRequestDto;
 import com.nahid.product.dto.request.PurchaseProductRequestDto;
@@ -44,46 +44,30 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public ProductResponseDto createProduct(CreateProductRequestDto request) {
-        log.info("Creating new product with SKU: {}", request.getSku());
 
-        try {
-            if (productRepository.existsBySku(request.getSku())) {
-                log.error("Product with SKU {} already exists", request.getSku());
-                throw new DuplicateResourceException("Product with SKU " + request.getSku() + " already exists");
-            }
-
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> {
-                        return new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId());
-                    });
-
-            Product product = productMapper.toEntity(request);
-            product.setCategory(category);
-            product.setIsActive(true);
-            product.setImageUrl(request.getImageUrl());
-
-            Product savedProduct = productRepository.save(product);
-            log.info("Product created successfully with ID: {}", savedProduct.getId());
-
-            return productMapper.toResponse(savedProduct);
-        } catch (DuplicateResourceException | ResourceNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Unexpected error creating product with SKU: {}", request.getSku(), e);
-            throw e;
+        if (productRepository.existsBySku(request.getSku())) {
+            throw new DuplicateResourceException("Product with SKU " + request.getSku() + " already exists");
         }
+
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId()));
+
+        Product product = productMapper.toEntity(request);
+        product.setCategory(category);
+        product.setIsActive(true);
+        product.setImageUrl(request.getImageUrl());
+
+        Product savedProduct = productRepository.save(product);
+
+        return productMapper.toResponse(savedProduct);
+
     }
 
     @Override
     @Transactional(readOnly = true)
     public ProductResponseDto getProductById(Long id) {
-        log.debug("Fetching product with ID: {}", id);
-
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("Product with ID {} not found", id);
-                    return new ResourceNotFoundException("Product not found with ID: " + id);
-                });
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
 
         return productMapper.toResponse(product);
     }
@@ -91,13 +75,9 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public ProductResponseDto getProductBySku(String sku) {
-        log.debug("Fetching product with SKU: {}", sku);
 
         Product product = productRepository.findBySku(sku)
-                .orElseThrow(() -> {
-                    log.error("Product with SKU {} not found", sku);
-                    return new ResourceNotFoundException("Product not found with SKU: " + sku);
-                });
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with SKU: " + sku));
 
         return productMapper.toResponse(product);
     }
@@ -105,18 +85,13 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public Page<ProductResponseDto> getAllProducts(Pageable pageable) {
-        log.debug("Fetching all products with pagination: {}", pageable);
-
         Page<Product> products = productRepository.findAll(pageable);
-        log.info("Found {} products", products.getTotalElements());
         return products.map(productMapper::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ProductResponseDto> getActiveProducts(Pageable pageable) {
-        log.debug("Fetching active products with pagination: {}", pageable);
-
         Page<Product> products = productRepository.findByIsActiveTrue(pageable);
         return products.map(productMapper::toResponse);
     }
@@ -124,7 +99,6 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public Page<ProductResponseDto> getProductsByCategory(Long categoryId, Pageable pageable) {
-        log.debug("Fetching products by category ID: {} with pagination: {}", categoryId, pageable);
 
         if (!categoryRepository.existsById(categoryId)) {
             throw new ResourceNotFoundException("Category not found with ID: " + categoryId);
@@ -137,7 +111,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public Page<ProductResponseDto> searchProducts(String name, String brand, BigDecimal minPrice,
-                                                BigDecimal maxPrice, Long categoryId, Pageable pageable) {
+                                                   BigDecimal maxPrice, Long categoryId, Pageable pageable) {
 
         Page<Product> products = productRepository.findProductsWithFilters(
                 name, brand, minPrice, maxPrice, categoryId, pageable);
@@ -147,8 +121,6 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public List<ProductResponseDto> getFeaturedProducts() {
-        log.debug("Fetching featured products");
-
         List<Product> products = productRepository.findByIsFeaturedTrue();
         return productMapper.toResponseList(products);
     }
@@ -156,8 +128,6 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public List<ProductResponseDto> getLowStockProducts() {
-        log.debug("Fetching low stock products");
-
         List<Product> products = productRepository.findLowStockProducts();
         return productMapper.toResponseList(products);
     }
@@ -166,80 +136,51 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public ProductResponseDto updateProduct(Long id, UpdateProductRequestDto request) {
 
-        try {
-            Product existingProduct = productRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
 
-            if (request.getCategoryId() != null) {
-                Category category = categoryRepository.findById(request.getCategoryId())
-                        .orElseThrow(() -> {
-                            log.error("Category with ID {} not found", request.getCategoryId());
-                            return new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId());
-                        });
-                existingProduct.setCategory(category);
-            }
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
 
-            productMapper.updateProductFromRequest(request, existingProduct);
-
-            Product updatedProduct = productRepository.save(existingProduct);
-
-            return productMapper.toResponse(updatedProduct);
-        } catch (ResourceNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Unexpected error updating product with ID: {}", id, e);
-            throw e;
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId()));
+            existingProduct.setCategory(category);
         }
+
+        productMapper.updateProductFromRequest(request, existingProduct);
+
+        Product updatedProduct = productRepository.save(existingProduct);
+
+        return productMapper.toResponse(updatedProduct);
+
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteProduct(Long id) {
-        log.info("Deleting product with ID: {}", id);
 
-        try {
-            if (!productRepository.existsById(id)) {
-                throw new ResourceNotFoundException("Product not found with ID: " + id);
-            }
-
-            productRepository.deleteById(id);
-            log.info("Product deleted successfully with ID: {}", id);
-        } catch (ResourceNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Unexpected error deleting product with ID: {}", id, e);
-            throw e;
+        if (!productRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Product not found with ID: " + id);
         }
+        productRepository.deleteById(id);
+
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public ProductResponseDto updateStock(Long id, Integer newStock) {
-        try {
-            return inventoryService.updateStock(id, newStock);
-        } catch (Exception e) {
-            log.error("Error updating stock for product ID: {}", id, e);
-            throw e;
-        }
+        return inventoryService.updateStock(id, newStock);
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean isProductAvailable(Long id, Integer requiredQuantity) {
-        log.debug("Delegating availability check to InventoryService for product ID: {}", id);
         return inventoryService.isProductAvailable(id, requiredQuantity);
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public PurchaseProductResponseDto processPurchase(PurchaseProductRequestDto request) {
-        log.info("Delegating purchase processing to PurchaseService");
-        try {
-            return purchaseService.processPurchase(request);
-        } catch (Exception e) {
-            log.error("Error processing purchase: {}", e.getMessage(), e);
-            throw e;
-        }
+        return purchaseService.processPurchase(request);
     }
 
 }

@@ -39,10 +39,9 @@ public class ProductController {
     public ResponseEntity<ApiResponse<PurchaseProductResponseDto>> purchaseProduct(@Valid @RequestBody PurchaseProductRequestDto request) {
         PurchaseProductResponseDto response = productService.processPurchase(request);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.CONFLICT;
-        if (response.isSuccess()) {
-            return ApiResponseUtil.success(response, response.getMessage(), status);
-        }
-        return ApiResponseUtil.failureWithData(response, response.getMessage(), status);
+        return ApiResponseUtil.success(response, response.getMessage(), status);
+
+
     }
 
     @GetMapping("/{id}")
