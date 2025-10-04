@@ -6,29 +6,38 @@ import com.nahid.order.service.OrderStatusService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
+
+import static java.util.Map.entry;
+
 @Service
 @Slf4j
 public class OrderStatusServiceImpl implements OrderStatusService {
 
+    private static final Map<OrderStatus, Set<OrderStatus>> ALLOWED_TRANSITIONS = Map.ofEntries(
+            entry(OrderStatus.PENDING, EnumSet.of(OrderStatus.CONFIRMED, OrderStatus.PROCESSING, OrderStatus.CANCELLED)),
+            entry(OrderStatus.CONFIRMED, EnumSet.of(OrderStatus.PROCESSING, OrderStatus.CANCELLED)),
+            entry(OrderStatus.PROCESSING, EnumSet.of(OrderStatus.SHIPPED, OrderStatus.CANCELLED)),
+            entry(OrderStatus.SHIPPED, EnumSet.of(OrderStatus.DELIVERED)),
+            entry(OrderStatus.DELIVERED, EnumSet.of(OrderStatus.REFUNDED))
+    );
+
     @Override
     public void validateStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
-        if (currentStatus == OrderStatus.PENDING && newStatus == OrderStatus.DELIVERED) {
-            throw new OrderProcessingException("Cannot deliver an order that is still pending");
+        if (currentStatus == newStatus) {
+            log.debug("No status change required for order status: {}", currentStatus);
+            return;
         }
-        if (currentStatus == OrderStatus.PENDING && newStatus == OrderStatus.CANCELLED) {
-            throw new OrderProcessingException("Cannot cancel an order that is still pending");
-        }
-        if (currentStatus == OrderStatus.PENDING) {
-            throw new OrderProcessingException("Cannot change status of pending order to " + newStatus);
-        }
-        if (currentStatus == OrderStatus.SHIPPED && newStatus != OrderStatus.DELIVERED) {
-            throw new OrderProcessingException("Cannot change status of shipped order to " + newStatus);
-        }
-        if (currentStatus == OrderStatus.CANCELLED && newStatus != OrderStatus.CANCELLED) {
-            throw new OrderProcessingException("Cannot change status of cancelled order");
-        }
-        if (currentStatus == OrderStatus.DELIVERED && newStatus != OrderStatus.REFUNDED) {
-            throw new OrderProcessingException("Can only refund delivered orders");
+
+        Set<OrderStatus> allowedStatuses = ALLOWED_TRANSITIONS.getOrDefault(currentStatus, Collections.emptySet());
+
+        if (!allowedStatuses.contains(newStatus)) {
+            throw new OrderProcessingException(
+                    "Cannot change status of order from " + currentStatus + " to " + newStatus
+            );
         }
     }
 
