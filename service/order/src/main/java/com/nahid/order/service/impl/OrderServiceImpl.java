@@ -51,10 +51,10 @@ public class OrderServiceImpl implements OrderService {
             orderNumber = orderNumberService.generateOrderNumber();
 
             PurchaseProductResponseDto reservationResponse = productPurchaseService.reserveProducts(request, orderNumber);
-
-            if (reservationResponse == null || !reservationResponse.isSuccess()) {
-                String errorMessage = productPurchaseService.formatReservationError(reservationResponse);
-                throw new OrderProcessingException(String.format(ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED, errorMessage));
+            if (reservationResponse == null) {
+                throw new OrderProcessingException(String.format(
+                        ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                        "Product service returned empty reservation data"));
             }
             reservationCreated = true;
 

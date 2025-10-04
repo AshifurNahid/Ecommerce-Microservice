@@ -8,9 +8,11 @@ import com.nahid.product.entity.InventoryReservation;
 import com.nahid.product.entity.InventoryReservationItem;
 import com.nahid.product.entity.Product;
 import com.nahid.product.enums.ReservationStatus;
+import com.nahid.product.exception.PurchaseException;
 import com.nahid.product.repository.InventoryReservationRepository;
 import com.nahid.product.repository.ProductRepository;
 import com.nahid.product.service.PurchaseService;
+import com.nahid.product.util.constant.ExceptionMessageConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -44,13 +46,13 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .orElseGet(() -> InventoryReservation.createNew(request.getOrderReference()));
 
         if (reservation.getStatus() == ReservationStatus.CONFIRMED) {
-            return buildSuccessResponse("Inventory already confirmed", reservation);
+            return buildReservationResponse(reservation);
         }
 
         if (reservation.getId() != null
                 && reservation.getStatus() == ReservationStatus.RESERVED
                 && !reservation.getItems().isEmpty()) {
-            return buildSuccessResponse("Inventory already reserved", reservation);
+            return buildReservationResponse(reservation);
         }
 
         List<Long> productIds = request.getItems().stream()
@@ -77,12 +79,25 @@ public class PurchaseServiceImpl implements PurchaseService {
         }
 
         if (!allAvailable) {
-            return PurchaseProductResponseDto.builder()
-                    .success(false)
-                    .message("One or more products are unavailable")
-                    .orderReference(request.getOrderReference())
-                    .items(itemResults)
-                    .build();
+            String unavailableDetails = itemResults.stream()
+                    .filter(item -> !item.isAvailable())
+                    .map(item -> String.format(
+                            "Product %s (ID: %s, SKU: %s) - %s (Requested: %d, Available: %d)",
+                            Optional.ofNullable(item.getProductName()).orElse("Unknown"),
+                            item.getProductId() != null ? item.getProductId() : 0,
+                            Optional.ofNullable(item.getSku()).orElse("N/A"),
+                            Optional.ofNullable(item.getMessage()).orElse("Unavailable"),
+                            item.getRequestedQuantity(),
+                            item.getAvailableQuantity()))
+                    .collect(Collectors.joining("; "));
+
+            String errorDetail = unavailableDetails.isEmpty()
+                    ? "One or more products are unavailable"
+                    : unavailableDetails;
+
+            throw new PurchaseException(String.format(
+                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                    errorDetail));
         }
 
         // reserve inventory atomically
@@ -113,8 +128,6 @@ public class PurchaseServiceImpl implements PurchaseService {
         reservationRepository.save(reservation);
 
         return PurchaseProductResponseDto.builder()
-                .success(true)
-                .message("Inventory reserved successfully")
                 .orderReference(request.getOrderReference())
                 .items(itemResults)
                 .build();
@@ -186,7 +199,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .build();
     }
 
-    private PurchaseProductResponseDto buildSuccessResponse(String message, InventoryReservation reservation) {
+    private PurchaseProductResponseDto buildReservationResponse(InventoryReservation reservation) {
         List<PurchaseProductItemResultDto> itemResults = reservation.getItems().stream()
                 .map(item -> PurchaseProductItemResultDto.builder()
                         .productId(item.getProductId())
@@ -201,8 +214,6 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .toList();
 
         return PurchaseProductResponseDto.builder()
-                .success(true)
-                .message(message)
                 .orderReference(reservation.getOrderReference())
                 .items(itemResults)
                 .build();

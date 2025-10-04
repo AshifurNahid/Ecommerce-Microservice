@@ -13,8 +13,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PurchaseProductResponseDto {
-    private boolean success;
-    private String message;
     private String orderReference;
     private List<PurchaseProductItemResultDto> items;
 

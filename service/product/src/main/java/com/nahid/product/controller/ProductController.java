@@ -38,8 +38,7 @@ public class ProductController {
     @PostMapping("/inventory/reservations")
     public ResponseEntity<ApiResponse<PurchaseProductResponseDto>> reserveInventory(@Valid @RequestBody PurchaseProductRequestDto request) {
         PurchaseProductResponseDto response = productService.reserveInventory(request);
-        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.CONFLICT;
-        return ApiResponseUtil.success(response, ApiResponseConstant.INVENTORY_RESERVED_SUCCESSFULLY , status);
+        return ApiResponseUtil.success(response, ApiResponseConstant.INVENTORY_RESERVED_SUCCESSFULLY, HttpStatus.OK);
     }
 
     @PostMapping("/inventory/reservations/{orderReference}/confirm")

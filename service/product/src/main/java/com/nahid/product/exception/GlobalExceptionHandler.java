@@ -31,6 +31,12 @@ public class GlobalExceptionHandler {
         return ApiResponseUtil.failureWithHttpStatus(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(PurchaseException.class)
+    public ResponseEntity<ApiResponse<Object>> handlePurchaseException(PurchaseException ex) {
+        log.error("Purchase operation failed: {}", ex.getMessage());
+        return ApiResponseUtil.failureWithHttpStatus(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         log.error("Validation failed: {}", ex.getMessage());
