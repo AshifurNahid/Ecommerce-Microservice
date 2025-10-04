@@ -10,7 +10,5 @@ public interface ProductPurchaseService {
     void confirmReservation(String orderReference);
 
     void releaseReservation(String orderReference);
-
-    String formatReservationError(PurchaseProductResponseDto response);
 }
 

@@ -8,14 +8,12 @@ import com.nahid.order.dto.response.ApiResponse;
 import com.nahid.order.dto.response.PurchaseProductResponseDto;
 import com.nahid.order.exception.OrderProcessingException;
 import com.nahid.order.service.ProductPurchaseService;
+import com.nahid.order.util.constant.ExceptionMessageConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import org.springframework.http.ResponseEntity;
-
-import java.util.Collections;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -41,11 +39,29 @@ public class ProductPurchaseServiceImpl implements ProductPurchaseService {
         ApiResponse<PurchaseProductResponseDto> apiResponse =
                 responseEntity != null ? responseEntity.getBody() : null;
 
-        if (apiResponse == null || apiResponse.getData() == null) {
-            throw new OrderProcessingException(" failed to reserve inventory with orderReference " + orderReference);
+        if (apiResponse == null) {
+            throw new OrderProcessingException(String.format(
+                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                    "No response received from product service"));
         }
 
-        return apiResponse.getData();
+        if (!apiResponse.isSuccess()) {
+            String failureMessage = apiResponse.getMessage() != null
+                    ? apiResponse.getMessage()
+                    : "Product service returned an unsuccessful response";
+            throw new OrderProcessingException(String.format(
+                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                    failureMessage));
+        }
+
+        PurchaseProductResponseDto responseData = apiResponse.getData();
+        if (responseData == null) {
+            throw new OrderProcessingException(String.format(
+                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                    "Product service returned empty reservation data"));
+        }
+
+        return responseData;
     }
 
     @Override
@@ -57,34 +73,6 @@ public class ProductPurchaseServiceImpl implements ProductPurchaseService {
     public void releaseReservation(String orderReference) {
         productClient.releaseReservation(orderReference);
     }
-
-    @Override
-    public String formatReservationError(PurchaseProductResponseDto response) {
-        StringBuilder errorBuilder = new StringBuilder();
-
-        if (response != null) {
-            errorBuilder.append(response.getMessage()).append(": ");
-            if (response.getItems() != null) {
-                List<String> itemErrors = response.getItems().stream()
-                        .filter(item -> !item.isAvailable())
-                        .map(item -> String.format("Product %s (ID: %d, SKU: %s) - %s (Requested: %d, Available: %d)",
-                                item.getProductName(),
-                                item.getProductId(),
-                                item.getSku(),
-                                item.getMessage(),
-                                item.getRequestedQuantity(),
-                                item.getAvailableQuantity()))
-                        .toList();
-
-                errorBuilder.append(String.join("; ", itemErrors));
-            }
-        } else {
-            errorBuilder.append("Failed to get response from product service");
-        }
-
-        return errorBuilder.toString();
-    }
-
 
 }
 

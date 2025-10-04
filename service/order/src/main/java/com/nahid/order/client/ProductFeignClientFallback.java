@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.Collections;
 
 @Component
 @Slf4j
@@ -21,18 +20,11 @@ public class ProductFeignClientFallback implements ProductClient {
         log.error("Fallback triggered for reserveInventory with orderReference: {}",
                 request != null ? request.getOrderReference() : "unknown");
 
-        PurchaseProductResponseDto responseDto = PurchaseProductResponseDto.builder()
-                .success(false)
-                .message("Product service is unavailable. Unable to reserve inventory.")
-                .orderReference(request != null ? request.getOrderReference() : null)
-                .items(Collections.emptyList())
-                .build();
-
         ApiResponse<PurchaseProductResponseDto> apiResponse = ApiResponse.<PurchaseProductResponseDto>builder()
                 .statusCode(HttpStatus.SERVICE_UNAVAILABLE.value())
                 .success(false)
-                .message(responseDto.getMessage())
-                .data(responseDto)
+                .message("Product service is unavailable. Unable to reserve inventory.")
+                .data(null)
                 .timestamp(Instant.now())
                 .build();
 
