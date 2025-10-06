@@ -3,12 +3,14 @@ package com.nahid.notification.entity;
 import com.nahid.notification.enums.NotificationStatus;
 import com.nahid.notification.enums.NotificationType;
 import com.nahid.notification.enums.ReferenceType;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -19,11 +21,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Notification {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+public class Notification extends BaseEntity<UUID> {
 
     @Column(name = "reference_id", nullable = false)
     private UUID referenceId; // paymentId or orderId
@@ -69,14 +67,4 @@ public class Notification {
 
     @Column(name = "retry_count")
     private Integer retryCount = 0;
-
-    @CreationTimestamp
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-
 }
