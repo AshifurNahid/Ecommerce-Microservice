@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("api/v1//notifications")
+@RequestMapping("/api/v1//notifications")
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationController {
@@ -38,25 +38,25 @@ public class NotificationController {
         }
     }
 
-    @GetMapping("/customer/{customerId}")
-    public ResponseEntity<List<NotificationResponseDto>> getNotificationsByCustomerId(
-            @PathVariable String customerId) {
-        log.info("Fetching notifications for customer: {}", customerId);
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<NotificationResponseDto>> getNotificationsByUserId(
+            @PathVariable String userId) {
+        log.info("Fetching notifications for user: {}", userId);
 
-        List<NotificationResponseDto> notifications = notificationService.getNotificationsByCustomerId(customerId);
+        List<NotificationResponseDto> notifications = notificationService.getNotificationsByUserId(userId);
         return ResponseEntity.ok(notifications);
     }
 
-    @GetMapping("/customer/{customerId}/paginated")
-    public ResponseEntity<Page<NotificationResponseDto>> getNotificationsByCustomerIdPaginated(
-            @PathVariable String customerId,
+    @GetMapping("/user/{userId}/paginated")
+    public ResponseEntity<Page<NotificationResponseDto>> getNotificationsByuserIdPaginated(
+            @PathVariable String userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        log.info("Fetching paginated notifications for customer: {}, page: {}, size: {}",
-                customerId, page, size);
+        log.info("Fetching paginated notifications for user: {}, page: {}, size: {}",
+                userId, page, size);
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<NotificationResponseDto> notifications = notificationService.getNotificationsByCustomerId(customerId, pageable);
+        Page<NotificationResponseDto> notifications = notificationService.getNotificationsByUserId(userId, pageable);
         return ResponseEntity.ok(notifications);
     }
 
@@ -104,7 +104,7 @@ public class NotificationController {
 
     @PostMapping
     public ResponseEntity<NotificationDto> createNotification(@RequestBody NotificationDto notificationDto) {
-        log.info("Creating manual notification for customer: {}", notificationDto.getCustomerId());
+        log.info("Creating manual notification for user: {}", notificationDto.getUserId());
 
         try {
             NotificationDto createdNotification = notificationService.createNotification(notificationDto);

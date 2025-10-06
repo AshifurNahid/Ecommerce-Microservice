@@ -17,7 +17,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "payments", indexes = {
         @Index(name = "idx_payment_order_id", columnList = "order_id"),
-        @Index(name = "idx_payment_customer_id", columnList = "customer_id"),
+        @Index(name = "idx_payment_user_id", columnList = "user_id"),
         @Index(name = "idx_payment_status", columnList = "status"),
         @Index(name = "idx_payment_transaction_id", columnList = "transaction_id")
 })
@@ -34,7 +34,7 @@ public class Payment {
     @Column(name = "order_id", nullable = false)
     private UUID orderId;
 
-    @Column(name = "customer_id", nullable = false)
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
@@ -54,11 +54,11 @@ public class Payment {
     @Column(name = "transaction_id", unique = true)
     private String transactionId;
 
-    @Column(name = "customer_email", nullable = false)
+    @Column(name = "user_email", nullable = false)
     private String userEmail;
 
-    @Column(name = "customer_phone")
-    private String cuserPhone;
+    @Column(name = "user_phone")
+    private String userPhone;
 
     @Column(name = "payment_gateway")
     private String paymentGateway;
@@ -79,8 +79,5 @@ public class Payment {
 
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
-
-
-
 
 }

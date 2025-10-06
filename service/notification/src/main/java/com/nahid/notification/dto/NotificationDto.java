@@ -20,9 +20,9 @@ public class NotificationDto {
     private UUID id;
     private UUID referenceId;
     private ReferenceType referenceType;
-    private String customerId;
-    private String customerEmail;
-    private String customerPhone;
+    private String userId;
+    private String userEmail;
+    private String userPhone;
     private NotificationType notificationType;
     private String message;
     private NotificationStatus status;
