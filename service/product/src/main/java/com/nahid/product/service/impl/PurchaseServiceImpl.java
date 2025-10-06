@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -118,8 +119,6 @@ public class PurchaseServiceImpl implements PurchaseService {
                     .productId(product.getId())
                     .reservedQuantity(item.getQuantity())
                     .unitPrice(product.getPrice())
-                    .productName(product.getName())
-                    .sku(product.getSku())
                     .build();
             reservation.addItem(reservationItem);
         });
@@ -200,17 +199,29 @@ public class PurchaseServiceImpl implements PurchaseService {
     }
 
     private PurchaseProductResponseDto buildReservationResponse(InventoryReservation reservation) {
+        List<Long> productIds = reservation.getItems().stream()
+                .map(InventoryReservationItem::getProductId)
+                .toList();
+
+        Map<Long, Product> productsById = productIds.isEmpty()
+                ? Map.of()
+                : productRepository.findAllById(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+
         List<PurchaseProductItemResultDto> itemResults = reservation.getItems().stream()
-                .map(item -> PurchaseProductItemResultDto.builder()
-                        .productId(item.getProductId())
-                        .productName(item.getProductName())
-                        .sku(item.getSku())
-                        .requestedQuantity(item.getReservedQuantity())
-                        .availableQuantity(item.getReservedQuantity())
-                        .price(item.getUnitPrice())
-                        .available(true)
-                        .message("")
-                        .build())
+                .map(item -> {
+                    Product product = productsById.get(item.getProductId());
+                    return PurchaseProductItemResultDto.builder()
+                            .productId(item.getProductId())
+                            .productName(product != null ? product.getName() : null)
+                            .sku(product != null ? product.getSku() : null)
+                            .requestedQuantity(item.getReservedQuantity())
+                            .availableQuantity(item.getReservedQuantity())
+                            .price(item.getUnitPrice())
+                            .available(product != null && Boolean.TRUE.equals(product.getIsActive()))
+                            .message(product == null ? "Product information not available" : "")
+                            .build();
+                })
                 .toList();
 
         return PurchaseProductResponseDto.builder()

@@ -22,7 +22,6 @@ public final class ApiResponseConstant {
     public static final String INVENTORY_RESERVATION_FAILED = "Inventory reservation could not be completed";
     public static final String INVENTORY_RESERVATION_CONFIRMED = "Inventory reservation confirmed";
     public static final String INVENTORY_RESERVATION_RELEASED = "Inventory reservation released";
-
     public static final String CATEGORY_CREATED_SUCCESSFULLY = "Category created successfully";
     public static final String CATEGORY_FETCHED_SUCCESSFULLY = "Category fetched successfully";
     public static final String CATEGORIES_FETCHED_SUCCESSFULLY = "Categories fetched successfully";

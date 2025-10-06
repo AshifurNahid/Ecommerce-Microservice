@@ -61,6 +61,12 @@ public class ProductPurchaseServiceImpl implements ProductPurchaseService {
                     "Product service returned empty reservation data"));
         }
 
+        if (responseData.getItems() == null || responseData.getItems().isEmpty()) {
+            throw new OrderProcessingException(String.format(
+                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                    "Product service returned empty reservation items"));
+        }
+
         return responseData;
     }
 

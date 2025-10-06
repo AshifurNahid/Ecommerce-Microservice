@@ -29,6 +29,9 @@ public interface OrderMapper {
 
     @Mapping(target = "orderItemId", ignore = true)
     @Mapping(target = "order", ignore = true)
+    @Mapping(target = "productName", ignore = true)
+    @Mapping(target = "productSku", ignore = true)
+    @Mapping(target = "unitPrice", ignore = true)
     @Mapping(target = "totalPrice", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     OrderItem toEntity(CreateOrderItemRequest request);

@@ -1,8 +1,8 @@
 package com.nahid.order.service.impl;
 
-import com.nahid.order.dto.*;
 import com.nahid.order.dto.request.CreateOrderRequest;
 import com.nahid.order.dto.request.OrderDto;
+import com.nahid.order.dto.response.PurchaseProductItemResultDto;
 import com.nahid.order.dto.response.PurchaseProductResponseDto;
 import com.nahid.order.entity.Order;
 import com.nahid.order.entity.OrderItem;
@@ -12,7 +12,11 @@ import com.nahid.order.exception.OrderProcessingException;
 import com.nahid.order.mapper.OrderMapper;
 import com.nahid.order.producer.OrderEventPublisher;
 import com.nahid.order.repository.OrderRepository;
-import com.nahid.order.service.*;
+import com.nahid.order.service.OrderNumberService;
+import com.nahid.order.service.OrderService;
+import com.nahid.order.service.OrderStatusService;
+import com.nahid.order.service.ProductPurchaseService;
+import com.nahid.order.service.UserValidationService;
 import com.nahid.order.util.constant.ExceptionMessageConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -62,10 +69,52 @@ public class OrderServiceImpl implements OrderService {
             order.setOrderNumber(orderNumber);
             order.setStatus(OrderStatus.PENDING);
 
+            if (reservationResponse.getItems() == null || reservationResponse.getItems().isEmpty()) {
+                throw new OrderProcessingException(String.format(
+                        ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                        "Product service returned empty reservation details"));
+            }
+
+            Map<Long, PurchaseProductItemResultDto> reservedItems = reservationResponse.getItems()
+                    .stream()
+                    .collect(Collectors.toMap(
+                            PurchaseProductItemResultDto::getProductId,
+                            Function.identity(),
+                            (existing, replacement) -> existing));
+
             List<OrderItem> orderItems = request.getOrderItems().stream()
                     .map(itemRequest -> {
                         OrderItem item = orderMapper.toEntity(itemRequest);
-                        item.setTotalPrice(item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+                        Long productId = itemRequest.getProductId();
+                        PurchaseProductItemResultDto reservedItem = reservedItems.get(productId);
+                        if (reservedItem == null) {
+                            throw new OrderProcessingException(String.format(
+                                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                                    "Reservation details missing for product ID: " + productId));
+                        }
+
+                        if (!reservedItem.isAvailable()) {
+                            throw new OrderProcessingException(String.format(
+                                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                                    "Reserved item is unavailable for product ID: " + productId));
+                        }
+
+                        BigDecimal unitPrice = reservedItem.getPrice();
+                        if (unitPrice == null) {
+                            throw new OrderProcessingException(String.format(
+                                    ExceptionMessageConstant.PRODUCT_PRICE_FETCH_FAILED,
+                                    "Reserved price missing for product ID: " + productId));
+                        }
+
+                        if (!itemRequest.getQuantity().equals(reservedItem.getRequestedQuantity())) {
+                            log.warn("Quantity mismatch detected for product {}. Requested: {}, Reserved: {}", productId,
+                                    itemRequest.getQuantity(), reservedItem.getRequestedQuantity());
+                        }
+
+                        item.setProductName(reservedItem.getProductName());
+                        item.setProductSku(reservedItem.getSku());
+                        item.setUnitPrice(unitPrice);
+                        item.setTotalPrice(unitPrice.multiply(BigDecimal.valueOf(item.getQuantity())));
                         return item;
                     }).toList();
 
