@@ -34,4 +34,5 @@ public class ExceptionMessageConstant {
 
     // Product-related Exception Messages
     public static final String PRODUCT_RESERVATION_FAILED = "Product reservation failed: %s";
+    public static final String PRODUCT_PRICE_FETCH_FAILED = "Product price lookup failed: %s";
 }

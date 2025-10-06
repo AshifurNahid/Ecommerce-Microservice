@@ -31,9 +31,4 @@ public class InventoryReservationItem {
     @Column(name = "unit_price", precision = 12, scale = 2)
     private BigDecimal unitPrice;
 
-    @Column(name = "product_name")
-    private String productName;
-
-    @Column(name = "sku")
-    private String sku;
 }

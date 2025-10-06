@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-
 @Component
 @Slf4j
 public class ProductFeignClientFallback implements ProductClient {
