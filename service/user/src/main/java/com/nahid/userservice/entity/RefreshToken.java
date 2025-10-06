@@ -12,11 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RefreshToken {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class RefreshToken extends BaseEntity<Long> {
 
     @Column(unique = true, nullable = false)
     private String token;
@@ -30,9 +26,6 @@ public class RefreshToken {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-
-    @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
 
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(expiryDate);
