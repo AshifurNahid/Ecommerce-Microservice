@@ -22,9 +22,9 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
     Optional<Notification> findByReferenceIdAndReferenceType(UUID referenceId, ReferenceType referenceType);
 
-    List<Notification> findByCustomerIdOrderByCreatedAtDesc(String customerId);
+    List<Notification> findByUserIdOrderByCreatedAtDesc(String customerId);
 
-    Page<Notification> findByCustomerIdOrderByCreatedAtDesc(String customerId, Pageable pageable);
+    Page<Notification> findByUserIdOrderByCreatedAtDesc(String customerId, Pageable pageable);
 
     List<Notification> findByStatusOrderByCreatedAtDesc(NotificationStatus status);
 

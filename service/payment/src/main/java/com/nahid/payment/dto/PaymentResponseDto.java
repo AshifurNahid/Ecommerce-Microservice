@@ -20,14 +20,14 @@ public class PaymentResponseDto {
 
     private UUID id;
     private UUID orderId;
-    private String customerId;
+    private String userId;
     private BigDecimal amount;
     private String currency;
     private PaymentMethod paymentMethod;
     private PaymentStatus status;
     private String transactionId;
-    private String customerEmail;
-    private String customerPhone;
+    private String userEmail;
+    private String userPhone;
     private String paymentGateway;
     private String failureReason;
 

@@ -32,7 +32,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public NotificationDto createNotification(NotificationDto notificationDto) {
-        log.info("Creating notification for customer: {}", notificationDto.getCustomerId());
+        log.info("Creating notification for customer: {}", notificationDto.getUserId());
 
         Notification notification = notificationMapper.toEntity(notificationDto);
         notification.setStatus(NotificationStatus.PENDING);
@@ -57,10 +57,10 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<NotificationResponseDto> getNotificationsByCustomerId(String customerId) {
+    public List<NotificationResponseDto> getNotificationsByUserId(String customerId) {
         log.debug("Fetching notifications for customer: {}", customerId);
 
-        List<Notification> notifications = notificationRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
+        List<Notification> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(customerId);
         return notifications.stream()
                 .map(notificationMapper::toResponseDto)
                 .toList();
@@ -68,10 +68,10 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<NotificationResponseDto> getNotificationsByCustomerId(String customerId, Pageable pageable) {
+    public Page<NotificationResponseDto> getNotificationsByUserId(String customerId, Pageable pageable) {
         log.debug("Fetching paginated notifications for customer: {}", customerId);
 
-        Page<Notification> notifications = notificationRepository.findByCustomerIdOrderByCreatedAtDesc(customerId, pageable);
+        Page<Notification> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(customerId, pageable);
         return notifications.map(notificationMapper::toResponseDto);
     }
 
@@ -212,7 +212,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void sendSmsNotification(Notification notification) {
         log.info("Sending SMS notification to: {} for notification ID: {}",
-                notification.getCustomerPhone(), notification.getId());
+                notification.getUserPhone(), notification.getId());
 
         try {
             // Simulate SMS sending - replace with actual SMS service integration
@@ -241,7 +241,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void sendEmailNotification(Notification notification) {
         log.info("Sending email notification to: {} for notification ID: {}",
-                notification.getCustomerEmail(), notification.getId());
+                notification.getUserEmail(), notification.getId());
 
         try {
             // Simulate email sending - replace with actual email service integration
@@ -289,7 +289,7 @@ public class NotificationServiceImpl implements NotificationService {
     private void simulateSmsService(Notification notification) {
         // Simulate SMS service call - replace with actual SMS provider (Twilio, AWS SNS, etc.)
         log.info("SMS Service: Sending SMS to {} - Message: {}",
-                notification.getCustomerPhone(), notification.getMessage());
+                notification.getUserPhone(), notification.getMessage());
 
         // Simulate processing time
         try {
@@ -303,13 +303,13 @@ public class NotificationServiceImpl implements NotificationService {
             throw new RuntimeException("SMS service temporarily unavailable");
         }
 
-        log.info("SMS sent successfully to: {}", notification.getCustomerPhone());
+        log.info("SMS sent successfully to: {}", notification.getUserPhone());
     }
 
     private void simulateEmailService(Notification notification) {
         // Simulate email service call - replace with actual email provider (SendGrid, AWS SES, etc.)
         log.info("Email Service: Sending email to {} - Subject: Notification - Message: {}",
-                notification.getCustomerEmail(), notification.getMessage());
+                notification.getUserEmail(), notification.getMessage());
 
         // Simulate processing time
         try {
@@ -323,6 +323,6 @@ public class NotificationServiceImpl implements NotificationService {
             throw new RuntimeException("Email service temporarily unavailable");
         }
 
-        log.info("Email sent successfully to: {}", notification.getCustomerEmail());
+        log.info("Email sent successfully to: {}", notification.getUserEmail());
     }
 }

@@ -33,13 +33,13 @@ public class Notification {
     private ReferenceType referenceType; // PAYMENT or ORDER
 
     @Column(name = "customer_id", nullable = false)
-    private String customerId;
+    private String userId;
 
     @Column(name = "customer_email")
-    private String customerEmail;
+    private String userEmail;
 
     @Column(name = "customer_phone")
-    private String customerPhone;
+    private String userPhone;
 
     @Column(name = "notification_type", nullable = false)
     @Enumerated(EnumType.STRING)

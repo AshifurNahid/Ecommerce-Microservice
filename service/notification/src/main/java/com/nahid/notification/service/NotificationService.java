@@ -19,9 +19,9 @@ public interface NotificationService {
 
     NotificationDto getNotificationById(UUID id);
 
-    List<NotificationResponseDto> getNotificationsByCustomerId(String customerId);
+    List<NotificationResponseDto> getNotificationsByUserId(String userId);
 
-    Page<NotificationResponseDto> getNotificationsByCustomerId(String customerId, Pageable pageable);
+    Page<NotificationResponseDto> getNotificationsByUserId(String userId, Pageable pageable);
 
     NotificationDto updateNotificationStatus(UUID id, NotificationStatus status);
 
