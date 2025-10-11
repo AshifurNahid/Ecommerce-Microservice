@@ -1,6 +1,7 @@
 package com.nahid.order.service.impl;
 
 import com.nahid.order.dto.OrderEventDto;
+import com.nahid.order.dto.request.CreateOrderItemRequest;
 import com.nahid.order.dto.request.CreateOrderRequest;
 import com.nahid.order.dto.request.OrderDto;
 import com.nahid.order.dto.response.PurchaseProductItemResultDto;
@@ -59,75 +60,19 @@ public class OrderServiceImpl implements OrderService {
             orderNumber = orderNumberService.generateOrderNumber();
 
             PurchaseProductResponseDto reservationResponse = productPurchaseService.reserveProducts(request, orderNumber);
-            if (reservationResponse == null) {
-                throw new OrderProcessingException(String.format(
-                        ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
-                        "Product service returned empty reservation data"));
-            }
+            validateReservationResponse(reservationResponse);
             reservationCreated = true;
 
             Order order = orderMapper.toEntity(request);
             order.setOrderNumber(orderNumber);
             order.setStatus(OrderStatus.PENDING);
 
-            if (reservationResponse.getItems() == null || reservationResponse.getItems().isEmpty()) {
-                throw new OrderProcessingException(String.format(
-                        ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
-                        "Product service returned empty reservation details"));
-            }
-
-            Map<Long, PurchaseProductItemResultDto> reservedItems = reservationResponse.getItems()
-                    .stream()
-                    .collect(Collectors.toMap(
-                            PurchaseProductItemResultDto::getProductId,
-                            Function.identity(),
-                            (existing, replacement) -> existing));
-
-            List<OrderItem> orderItems = request.getOrderItems().stream()
-                    .map(itemRequest -> {
-                        OrderItem item = orderMapper.toEntity(itemRequest);
-                        Long productId = itemRequest.getProductId();
-                        PurchaseProductItemResultDto reservedItem = reservedItems.get(productId);
-                        if (reservedItem == null) {
-                            throw new OrderProcessingException(String.format(
-                                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
-                                    "Reservation details missing for product ID: " + productId));
-                        }
-
-                        if (!reservedItem.isAvailable()) {
-                            throw new OrderProcessingException(String.format(
-                                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
-                                    "Reserved item is unavailable for product ID: " + productId));
-                        }
-
-                        BigDecimal unitPrice = reservedItem.getPrice();
-                        if (unitPrice == null) {
-                            throw new OrderProcessingException(String.format(
-                                    ExceptionMessageConstant.PRODUCT_PRICE_FETCH_FAILED,
-                                    "Reserved price missing for product ID: " + productId));
-                        }
-
-                        if (!itemRequest.getQuantity().equals(reservedItem.getRequestedQuantity())) {
-                            log.warn("Quantity mismatch detected for product {}. Requested: {}, Reserved: {}", productId,
-                                    itemRequest.getQuantity(), reservedItem.getRequestedQuantity());
-                        }
-
-                        item.setProductName(reservedItem.getProductName());
-                        item.setProductSku(reservedItem.getSku());
-                        item.setUnitPrice(unitPrice);
-                        item.setTotalPrice(unitPrice.multiply(BigDecimal.valueOf(item.getQuantity())));
-                        return item;
-                    }).toList();
-
-            BigDecimal totalAmount = orderItems.stream()
-                    .map(OrderItem::getTotalPrice)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            Map<Long, PurchaseProductItemResultDto> reservedItems = buildReservedItemsMap(reservationResponse);
+            List<OrderItem> orderItems = createOrderItems(request, reservedItems);
+            BigDecimal totalAmount = calculateTotalAmount(orderItems);
 
             order.setTotalAmount(totalAmount);
-
-            for (OrderItem item : orderItems) {
-                order.addOrderItem(item);
-            }
+            orderItems.forEach(order::addOrderItem);
 
             Order savedOrder = orderRepository.save(order);
             productPurchaseService.confirmReservation(orderNumber);
@@ -136,18 +81,106 @@ public class OrderServiceImpl implements OrderService {
             return orderMapper.toDto(savedOrder);
 
         } catch (OrderProcessingException e) {
-            if (reservationCreated && !reservationConfirmed && orderNumber != null) {
-                safeReleaseReservation(orderNumber);
-            }
+            handleReservationRollback(reservationCreated, reservationConfirmed, orderNumber);
             throw e;
         } catch (Exception e) {
-            if (reservationCreated && !reservationConfirmed && orderNumber != null) {
-                safeReleaseReservation(orderNumber);
-            }
+            handleReservationRollback(reservationCreated, reservationConfirmed, orderNumber);
             throw new OrderProcessingException(String.format(ExceptionMessageConstant.ORDER_CREATION_FAILED, e.getMessage()), e);
         }
     }
 
+    private void validateReservationResponse(PurchaseProductResponseDto reservationResponse) {
+        if (reservationResponse == null) {
+            throw new OrderProcessingException(String.format(
+                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                    "Product service returned empty reservation data"));
+        }
+
+        if (reservationResponse.getItems() == null || reservationResponse.getItems().isEmpty()) {
+            throw new OrderProcessingException(String.format(
+                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                    "Product service returned empty reservation details"));
+        }
+    }
+
+    private Map<Long, PurchaseProductItemResultDto> buildReservedItemsMap(PurchaseProductResponseDto reservationResponse) {
+        return reservationResponse.getItems()
+                .stream()
+                .collect(Collectors.toMap(
+                        PurchaseProductItemResultDto::getProductId,
+                        Function.identity(),
+                        (existing, replacement) -> existing));
+    }
+
+    private List<OrderItem> createOrderItems(CreateOrderRequest request, Map<Long, PurchaseProductItemResultDto> reservedItems) {
+        return request.getOrderItems().stream()
+                .map(itemRequest -> createOrderItem(itemRequest, reservedItems))
+                .toList();
+    }
+
+    private OrderItem createOrderItem(CreateOrderItemRequest itemRequest, Map<Long, PurchaseProductItemResultDto> reservedItems) {
+        OrderItem item = orderMapper.toEntity(itemRequest);
+        Long productId = itemRequest.getProductId();
+        PurchaseProductItemResultDto reservedItem = reservedItems.get(productId);
+
+        validateReservedItem(reservedItem, productId);
+        validateReservedItemAvailability(reservedItem, productId);
+        BigDecimal unitPrice = validateAndGetPrice(reservedItem, productId);
+
+        checkQuantityMismatch(itemRequest, reservedItem, productId);
+
+        item.setProductName(reservedItem.getProductName());
+        item.setProductSku(reservedItem.getSku());
+        item.setUnitPrice(unitPrice);
+        item.setTotalPrice(unitPrice.multiply(BigDecimal.valueOf(item.getQuantity())));
+
+        return item;
+    }
+
+    private void validateReservedItem(PurchaseProductItemResultDto reservedItem, Long productId) {
+        if (reservedItem == null) {
+            throw new OrderProcessingException(String.format(
+                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                    "Reservation details missing for product ID: " + productId));
+        }
+    }
+
+    private void validateReservedItemAvailability(PurchaseProductItemResultDto reservedItem, Long productId) {
+        if (!reservedItem.isAvailable()) {
+            throw new OrderProcessingException(String.format(
+                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                    "Reserved item is unavailable for product ID: " + productId));
+        }
+    }
+
+    private BigDecimal validateAndGetPrice(PurchaseProductItemResultDto reservedItem, Long productId) {
+        BigDecimal unitPrice = reservedItem.getPrice();
+        if (unitPrice == null) {
+            throw new OrderProcessingException(String.format(
+                    ExceptionMessageConstant.PRODUCT_PRICE_FETCH_FAILED,
+                    "Reserved price missing for product ID: " + productId));
+        }
+        return unitPrice;
+    }
+
+    private void checkQuantityMismatch(CreateOrderItemRequest itemRequest, PurchaseProductItemResultDto reservedItem, Long productId) {
+        if (!itemRequest.getQuantity().equals(reservedItem.getRequestedQuantity())) {
+            log.warn("Quantity mismatch detected for product {}. Requested: {}, Reserved: {}",
+                    productId, itemRequest.getQuantity(), reservedItem.getRequestedQuantity());
+        }
+    }
+
+    private BigDecimal calculateTotalAmount(List<OrderItem> orderItems) {
+        return orderItems.stream()
+                .map(OrderItem::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private void handleReservationRollback(boolean reservationCreated, boolean reservationConfirmed, String orderNumber) {
+        if (reservationCreated && !reservationConfirmed && orderNumber != null) {
+            safeReleaseReservation(orderNumber);
+        }
+    }
     private void safeReleaseReservation(String orderNumber) {
         try {
             productPurchaseService.releaseReservation(orderNumber);
