@@ -13,9 +13,10 @@ import org.mapstruct.ReportingPolicy;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface OrderMapper {
 
+    @Mapping(target = "orderId", source = "id")
     OrderDto toDto(Order order);
 
-    @Mapping(target = "orderId", ignore = true)
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "orderNumber", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "totalAmount", ignore = true)
@@ -25,9 +26,10 @@ public interface OrderMapper {
     @Mapping(target = "version", ignore = true)
     Order toEntity(CreateOrderRequest request);
 
+    @Mapping(target = "orderItemId", source = "id")
     OrderItemDto toDto(OrderItem orderItem);
 
-    @Mapping(target = "orderItemId", ignore = true)
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "order", ignore = true)
     @Mapping(target = "productName", ignore = true)
     @Mapping(target = "productSku", ignore = true)

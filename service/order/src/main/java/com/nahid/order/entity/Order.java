@@ -14,10 +14,10 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -27,13 +27,11 @@ import java.util.UUID;
 @Entity
 @Table(name = "orders")
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@AttributeOverrides({
-        @AttributeOverride(name = "id", column = @Column(name = "order_id"))
-})
+
 public class Order extends BaseEntity<UUID> {
 
     @Column(name = "order_number", nullable = false, unique = true)
@@ -56,7 +54,6 @@ public class Order extends BaseEntity<UUID> {
     private ShippingAddress shippingAddress;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
     private List<OrderItem> orderItems = new ArrayList<>();
 
     public UUID getOrderId() {

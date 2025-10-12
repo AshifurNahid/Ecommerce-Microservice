@@ -52,150 +52,117 @@ public class OrderServiceImpl implements OrderService {
     public OrderDto createOrder(CreateOrderRequest request) {
         String orderNumber = null;
         boolean reservationCreated = false;
-        boolean reservationConfirmed = false;
 
         try {
+            // Validate user
             userValidationService.validateUserForOrder(request.getUserId());
 
+            // Generate order number and reserve products
             orderNumber = orderNumberService.generateOrderNumber();
-
             PurchaseProductResponseDto reservationResponse = productPurchaseService.reserveProducts(request, orderNumber);
-            validateReservationResponse(reservationResponse);
+
+            if (reservationResponse == null || reservationResponse.getItems() == null || reservationResponse.getItems().isEmpty()) {
+                throw new OrderProcessingException(String.format(
+                        ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                        "Product service returned empty reservation data"));
+            }
             reservationCreated = true;
 
+            // Build reserved items map
+            Map<Long, PurchaseProductItemResultDto> reservedItemsMap = reservationResponse.getItems()
+                    .stream()
+                    .collect(Collectors.toMap(
+                            PurchaseProductItemResultDto::getProductId,
+                            Function.identity(),
+                            (existing, replacement) -> existing));
+
+            // Create order entity
             Order order = orderMapper.toEntity(request);
             order.setOrderNumber(orderNumber);
             order.setStatus(OrderStatus.PENDING);
 
-            Map<Long, PurchaseProductItemResultDto> reservedItems = buildReservedItemsMap(reservationResponse);
-            List<OrderItem> orderItems = createOrderItems(request, reservedItems);
-            BigDecimal totalAmount = calculateTotalAmount(orderItems);
+            // Create order items
+            List<OrderItem> orderItems = request.getOrderItems().stream()
+                    .map(itemRequest -> createOrderItem(itemRequest, reservedItemsMap))
+                    .toList();
+
+            // Calculate total and add items
+            BigDecimal totalAmount = orderItems.stream()
+                    .map(OrderItem::getTotalPrice)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             order.setTotalAmount(totalAmount);
             orderItems.forEach(order::addOrderItem);
 
+            // Save and confirm
             Order savedOrder = orderRepository.save(order);
             productPurchaseService.confirmReservation(orderNumber);
-            reservationConfirmed = true;
-            publishOrderCreatedEvent(savedOrder);
+
+            publishOrderEvent(savedOrder, OrderStatus.PENDING);
+
             return orderMapper.toDto(savedOrder);
 
         } catch (OrderProcessingException e) {
-            handleReservationRollback(reservationCreated, reservationConfirmed, orderNumber);
+            rollbackReservation(reservationCreated, orderNumber);
             throw e;
         } catch (Exception e) {
-            handleReservationRollback(reservationCreated, reservationConfirmed, orderNumber);
-            throw new OrderProcessingException(String.format(ExceptionMessageConstant.ORDER_CREATION_FAILED, e.getMessage()), e);
+            rollbackReservation(reservationCreated, orderNumber);
+            throw new OrderProcessingException(
+                    String.format(ExceptionMessageConstant.ORDER_CREATION_FAILED, e.getMessage()), e);
         }
     }
 
-    private void validateReservationResponse(PurchaseProductResponseDto reservationResponse) {
-        if (reservationResponse == null) {
-            throw new OrderProcessingException(String.format(
-                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
-                    "Product service returned empty reservation data"));
-        }
-
-        if (reservationResponse.getItems() == null || reservationResponse.getItems().isEmpty()) {
-            throw new OrderProcessingException(String.format(
-                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
-                    "Product service returned empty reservation details"));
-        }
-    }
-
-    private Map<Long, PurchaseProductItemResultDto> buildReservedItemsMap(PurchaseProductResponseDto reservationResponse) {
-        return reservationResponse.getItems()
-                .stream()
-                .collect(Collectors.toMap(
-                        PurchaseProductItemResultDto::getProductId,
-                        Function.identity(),
-                        (existing, replacement) -> existing));
-    }
-
-    private List<OrderItem> createOrderItems(CreateOrderRequest request, Map<Long, PurchaseProductItemResultDto> reservedItems) {
-        return request.getOrderItems().stream()
-                .map(itemRequest -> createOrderItem(itemRequest, reservedItems))
-                .toList();
-    }
-
-    private OrderItem createOrderItem(CreateOrderItemRequest itemRequest, Map<Long, PurchaseProductItemResultDto> reservedItems) {
-        OrderItem item = orderMapper.toEntity(itemRequest);
+    private OrderItem createOrderItem(CreateOrderItemRequest itemRequest,
+                                      Map<Long, PurchaseProductItemResultDto> reservedItemsMap) {
         Long productId = itemRequest.getProductId();
-        PurchaseProductItemResultDto reservedItem = reservedItems.get(productId);
+        PurchaseProductItemResultDto reservedItem = reservedItemsMap.get(productId);
 
-        validateReservedItem(reservedItem, productId);
-        validateReservedItemAvailability(reservedItem, productId);
-        BigDecimal unitPrice = validateAndGetPrice(reservedItem, productId);
+        // Validate reserved item
+        if (reservedItem == null || !reservedItem.isAvailable()) {
+            throw new OrderProcessingException(String.format(
+                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
+                    "Product unavailable or not reserved: " + productId));
+        }
 
-        checkQuantityMismatch(itemRequest, reservedItem, productId);
+        if (reservedItem.getPrice() == null) {
+            throw new OrderProcessingException(String.format(
+                    ExceptionMessageConstant.PRODUCT_PRICE_FETCH_FAILED,
+                    "Price missing for product: " + productId));
+        }
 
+        // Log quantity mismatch if any
+        if (!itemRequest.getQuantity().equals(reservedItem.getRequestedQuantity())) {
+            log.warn("Quantity mismatch for product {}. Requested: {}, Reserved: {}",
+                    productId, itemRequest.getQuantity(), reservedItem.getRequestedQuantity());
+        }
+
+        // Create order item
+        OrderItem item = orderMapper.toEntity(itemRequest);
         item.setProductName(reservedItem.getProductName());
         item.setProductSku(reservedItem.getSku());
-        item.setUnitPrice(unitPrice);
-        item.setTotalPrice(unitPrice.multiply(BigDecimal.valueOf(item.getQuantity())));
+        item.setUnitPrice(reservedItem.getPrice());
+        item.setTotalPrice(reservedItem.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
 
         return item;
     }
 
-    private void validateReservedItem(PurchaseProductItemResultDto reservedItem, Long productId) {
-        if (reservedItem == null) {
-            throw new OrderProcessingException(String.format(
-                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
-                    "Reservation details missing for product ID: " + productId));
-        }
-    }
-
-    private void validateReservedItemAvailability(PurchaseProductItemResultDto reservedItem, Long productId) {
-        if (!reservedItem.isAvailable()) {
-            throw new OrderProcessingException(String.format(
-                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
-                    "Reserved item is unavailable for product ID: " + productId));
-        }
-    }
-
-    private BigDecimal validateAndGetPrice(PurchaseProductItemResultDto reservedItem, Long productId) {
-        BigDecimal unitPrice = reservedItem.getPrice();
-        if (unitPrice == null) {
-            throw new OrderProcessingException(String.format(
-                    ExceptionMessageConstant.PRODUCT_PRICE_FETCH_FAILED,
-                    "Reserved price missing for product ID: " + productId));
-        }
-        return unitPrice;
-    }
-
-    private void checkQuantityMismatch(CreateOrderItemRequest itemRequest, PurchaseProductItemResultDto reservedItem, Long productId) {
-        if (!itemRequest.getQuantity().equals(reservedItem.getRequestedQuantity())) {
-            log.warn("Quantity mismatch detected for product {}. Requested: {}, Reserved: {}",
-                    productId, itemRequest.getQuantity(), reservedItem.getRequestedQuantity());
-        }
-    }
-
-    private BigDecimal calculateTotalAmount(List<OrderItem> orderItems) {
-        return orderItems.stream()
-                .map(OrderItem::getTotalPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private void handleReservationRollback(boolean reservationCreated, boolean reservationConfirmed, String orderNumber) {
-        if (reservationCreated && !reservationConfirmed && orderNumber != null) {
-            safeReleaseReservation(orderNumber);
-        }
-    }
-    private void safeReleaseReservation(String orderNumber) {
-        try {
-            productPurchaseService.releaseReservation(orderNumber);
-        } catch (Exception releaseException) {
-            log.error("Failed to release inventory reservation for order {}: {}", orderNumber, releaseException.getMessage());
+    private void rollbackReservation(boolean reservationCreated, String orderNumber) {
+        if (reservationCreated && orderNumber != null) {
+            try {
+                productPurchaseService.releaseReservation(orderNumber);
+            } catch (Exception e) {
+                log.error("Failed to release reservation for order {}: {}",
+                        orderNumber, e.getMessage());
+            }
         }
     }
 
     @Override
     @Transactional(readOnly = true)
     public OrderDto getOrderById(UUID orderId) {
-
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException(String.format(ExceptionMessageConstant.ORDER_NOT_FOUND, orderId)));
-
+                .orElseThrow(() -> new OrderNotFoundException(
+                        String.format(ExceptionMessageConstant.ORDER_NOT_FOUND, orderId)));
         return orderMapper.toDto(order);
     }
 
@@ -203,8 +170,8 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public OrderDto getOrderByOrderNumber(String orderNumber) {
         Order order = orderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new OrderNotFoundException(String.format(ExceptionMessageConstant.ORDER_NOT_FOUND_BY_NUMBER, orderNumber)));
-
+                .orElseThrow(() -> new OrderNotFoundException(
+                        String.format(ExceptionMessageConstant.ORDER_NOT_FOUND_BY_NUMBER, orderNumber)));
         return orderMapper.toDto(order);
     }
 
@@ -226,42 +193,47 @@ public class OrderServiceImpl implements OrderService {
     public OrderDto updateOrderStatus(UUID orderId, OrderStatus status) {
         try {
             Order order = orderRepository.findById(orderId)
-                    .orElseThrow(() -> new OrderNotFoundException(String.format(ExceptionMessageConstant.ORDER_NOT_FOUND, orderId)));
+                    .orElseThrow(() -> new OrderNotFoundException(
+                            String.format(ExceptionMessageConstant.ORDER_NOT_FOUND, orderId)));
+
             orderStatusService.validateStatusTransition(order.getStatus(), status);
             order.setStatus(status);
+
             Order savedOrder = orderRepository.save(order);
             return orderMapper.toDto(savedOrder);
+        } catch (OrderNotFoundException e) {
+            throw e;
         } catch (Exception e) {
-
-            throw new OrderProcessingException(String.format(ExceptionMessageConstant.ORDER_UPDATE_FAILED, e.getMessage()), e);
+            throw new OrderProcessingException(
+                    String.format(ExceptionMessageConstant.ORDER_UPDATE_FAILED, e.getMessage()), e);
         }
     }
 
     @Override
     public void cancelOrder(UUID orderId) {
-
         try {
             Order order = orderRepository.findById(orderId)
-                    .orElseThrow(() -> new OrderNotFoundException(String.format(ExceptionMessageConstant.ORDER_NOT_FOUND, orderId)));
+                    .orElseThrow(() -> new OrderNotFoundException(
+                            String.format(ExceptionMessageConstant.ORDER_NOT_FOUND, orderId)));
 
             orderStatusService.validateCancellation(order.getStatus());
 
             order.setStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
-            publishOrderCancelledEvent( order);
 
+            publishOrderEvent(order, OrderStatus.CANCELLED);
 
-        } catch (OrderProcessingException e) {
+        } catch (OrderProcessingException | OrderNotFoundException e) {
             throw e;
         } catch (Exception e) {
-            throw new OrderProcessingException(String.format(ExceptionMessageConstant.ORDER_CANCELLATION_FAILED, e.getMessage()), e);
+            throw new OrderProcessingException(
+                    String.format(ExceptionMessageConstant.ORDER_CANCELLATION_FAILED, e.getMessage()), e);
         }
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersByStatus(OrderStatus status) {
-
         return orderRepository.findByStatusOrderByCreatedAtDesc(status, Pageable.unpaged())
                 .getContent()
                 .stream()
@@ -275,40 +247,22 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.countByUserIdAndStatus(userId, status);
     }
 
-    private void publishOrderCreatedEvent(Order order) {
+    private void publishOrderEvent(Order order, OrderStatus status) {
         try {
-            OrderEventDto orderEvent = createOrderEvent(order, order.getStatus());
+            OrderEventDto orderEvent = OrderEventDto.builder()
+                    .orderId(order.getOrderId())
+                    .orderNumber(order.getOrderNumber())
+                    .userId(order.getUserId())
+                    .status(status)
+                    .totalAmount(order.getTotalAmount())
+                    .createdAt(order.getCreatedAt())
+                    .eventType("ORDER_" + status.name())
+                    .build();
+
             orderEventPublisher.publishOrderEvent(orderEvent);
         } catch (Exception e) {
-            log.error("Failed to publish order created event for orderId {}: {}", order.getOrderId(), e.getMessage());
+            log.error("Failed to publish order event for orderId {}: {}",
+                    order.getOrderId(), e.getMessage());
         }
-    }
-
-    private void publishOrderCancelledEvent(Order order) {
-        try {
-            OrderEventDto orderEvent = createOrderEvent(order, OrderStatus.CANCELLED);
-            orderEventPublisher.publishOrderEvent(orderEvent);
-        } catch (Exception e) {
-            log.error("Failed to publish order cancelled event for orderId {}: {}", order.getOrderId(), e.getMessage());
-        }
-    }
-
-
-    private OrderEventDto createOrderEvent(Order order, OrderStatus status) {
-        return OrderEventDto.builder()
-                .orderId(order.getOrderId())
-                .orderNumber(order.getOrderNumber())
-                .userId(order.getUserId())
-                .status(status)
-                .totalAmount(order.getTotalAmount())
-                .createdAt(order.getCreatedAt())
-                .eventType(resolveEventType(status))
-                .build();
-    }
-    private String resolveEventType(OrderStatus status) {
-        if (status == null) {
-            return "ORDER_UNKNOWN";
-        }
-        return "ORDER_" + status.name();
     }
 }
