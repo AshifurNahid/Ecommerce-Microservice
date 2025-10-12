@@ -9,8 +9,10 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -18,9 +20,11 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "notifications")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@SuperBuilder
 public class Notification extends BaseEntity<UUID> {
 
     @Column(name = "reference_id", nullable = false)
@@ -67,4 +71,7 @@ public class Notification extends BaseEntity<UUID> {
 
     @Column(name = "retry_count")
     private Integer retryCount = 0;
+
+
+
 }

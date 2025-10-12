@@ -6,10 +6,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.Version;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -30,7 +27,8 @@ public abstract class BaseEntity<T> {
 
     @Version
     @Column(name = "version")
-    private Long version;
+    @Builder.Default
+    private Long version = 0L;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

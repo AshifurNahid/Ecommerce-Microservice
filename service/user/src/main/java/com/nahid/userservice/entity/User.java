@@ -48,9 +48,6 @@ public class User extends BaseEntity<Long> implements UserDetails {
     @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "Phone number should be valid")
     private String phoneNumber;
 
-
-
-
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private Role role = Role.USER;

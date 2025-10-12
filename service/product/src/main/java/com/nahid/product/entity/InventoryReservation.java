@@ -3,6 +3,7 @@ package com.nahid.product.entity;
 import com.nahid.product.enums.ReservationStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -13,7 +14,7 @@ import java.util.UUID;
 @Table(name = "inventory_reservations")
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class InventoryReservation extends BaseEntity<Long> {

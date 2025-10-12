@@ -10,17 +10,18 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+/**
+ * Opens the Swagger UI in the default browser when the application is ready.
+ */
 @Component
 public class SwaggerUiOpener implements ApplicationListener<ApplicationReadyEvent> {
 
     @Value("${server.port}")
     private String serverPort;
 
-    @Value("${springdoc.swagger-ui.path}")
-    private String swaggerPath;
-
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
+        String swaggerPath = "/swagger-ui/index.html";
         String url = "http://localhost:" + serverPort + swaggerPath;
         System.out.println("Swagger UI available at: " + url);
 

@@ -2,6 +2,7 @@ package com.nahid.product.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 
@@ -9,7 +10,7 @@ import java.math.BigDecimal;
 @Table(name = "inventory_reservation_items")
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class InventoryReservationItem extends BaseEntity<Long> {
