@@ -91,7 +91,7 @@ public class JwtService {
 
             return Jwts.parser()
                     .verifyWith(signingKey)
-                    .clockSkewSeconds(clockSkew)
+                    .clockSkewSeconds(clockSkew/1000)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
