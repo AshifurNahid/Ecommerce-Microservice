@@ -1,6 +1,11 @@
 package com.nahid.gateway.util;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import lombok.extern.slf4j.Slf4j;
@@ -9,8 +14,10 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 
 @Component
@@ -20,7 +27,7 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${jwt.clock-skew:300000}") // 5 minutes default
+    @Value("${jwt.clock-skew:300000}")
     private long clockSkew;
 
 
@@ -30,7 +37,7 @@ public class JwtUtil {
 
     public List<String> extractRoles(String token) {
         Claims claims = extractAllClaims(token);
-        return claims.get("role", List.class);
+        return Optional.ofNullable(claims.get("role", List.class)).orElse(List.of());
     }
     public <T> T extractClaim(String token, java.util.function.Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
@@ -50,7 +57,8 @@ public class JwtUtil {
     private boolean isTokenExpired(String token) {
         Date expiration = extractExpiration(token);
         // Add clock skew tolerance
-        return expiration.before(new Date(System.currentTimeMillis() - clockSkew));
+        long skewMillis = Math.max(clockSkew, 0);
+        return expiration.before(new Date(System.currentTimeMillis() - skewMillis));
     }
 
 
@@ -62,9 +70,11 @@ public class JwtUtil {
         try {
             SecretKey signingKey = getSignInKey();
 
+            Duration skewDuration = Duration.ofMillis(Math.max(clockSkew, 0));
+
             return Jwts.parser()
                     .verifyWith(signingKey)
-                    .clockSkewSeconds(clockSkew / 1000) // Convert milliseconds to seconds
+                    .clockSkew(skewDuration)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
