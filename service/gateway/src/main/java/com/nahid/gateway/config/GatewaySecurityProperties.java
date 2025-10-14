@@ -1,5 +1,6 @@
 package com.nahid.gateway.config;
 
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.convert.DurationStyle;
 import org.springframework.stereotype.Component;
@@ -8,7 +9,6 @@ import org.springframework.util.StringUtils;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Centralised security settings for the gateway. The properties are intentionally injected via
@@ -36,6 +36,7 @@ public class GatewaySecurityProperties {
     @Value("${cors.exposed-headers:}")
     private String exposedHeaders;
 
+    @Getter
     @Value("${cors.allow-credentials:false}")
     private boolean allowCredentials;
 
@@ -66,10 +67,6 @@ public class GatewaySecurityProperties {
         return toList(exposedHeaders);
     }
 
-    public boolean isAllowCredentials() {
-        return allowCredentials;
-    }
-
     public Duration getCorsMaxAge() {
         return parseDuration(maxAge);
     }
@@ -81,7 +78,7 @@ public class GatewaySecurityProperties {
         return Arrays.stream(value.split(","))
                 .map(String::trim)
                 .filter(StringUtils::hasText)
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
     }
 
     private static Duration parseDuration(String value) {

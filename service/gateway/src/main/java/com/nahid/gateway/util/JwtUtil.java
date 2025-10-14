@@ -70,11 +70,10 @@ public class JwtUtil {
         try {
             SecretKey signingKey = getSignInKey();
 
-            Duration skewDuration = Duration.ofMillis(Math.max(clockSkew, 0));
 
             return Jwts.parser()
                     .verifyWith(signingKey)
-                    .clockSkew(skewDuration)
+                    .clockSkewSeconds(clockSkew/1000)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
