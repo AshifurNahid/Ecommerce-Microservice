@@ -19,7 +19,7 @@ A distributed, event-driven ecommerce platform built with Spring Boot and Spring
 
 ## Architecture
 
-## 🗺️ Architecture Diagram 
+## 🗺️ Architecture Diagram
 
 ```mermaid
 flowchart TD
@@ -100,6 +100,11 @@ This will spin up:
 * All microservices behind the API Gateway
 
 Each service will register automatically with Eureka.
+
+
+### Further Design Analysis
+
+For an in-depth review of the proposed production-grade architecture—including bounded contexts, saga flows, CQRS read models, observability, and deployment practices—see the [system reanalysis](docs/system-reanalysis.md).
 
 
 ### Build and Run Individually
