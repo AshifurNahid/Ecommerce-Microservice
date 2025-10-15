@@ -28,13 +28,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Global filter that validates JWT tokens before forwarding requests to downstream services.
- * <p>
- * The filter is applied to every request while respecting the configured public endpoints. On a
- * successful validation the authenticated user context is propagated via headers so that
- * microservices can rely on the gateway for authentication.
- */
+import static com.nahid.gateway.util.constant.ExceptionMessageConstant.JWT_TOKEN_EXPIRED;
+import static com.nahid.gateway.util.constant.ExceptionMessageConstant.JWT_TOKEN_INVALID;
+
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -60,12 +57,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         String token = extractToken(request.getHeaders());
         if (!StringUtils.hasText(token)) {
-            return writeErrorResponse(exchange, HttpStatus.UNAUTHORIZED, "Missing or invalid Authorization header");
+            return writeErrorResponse(exchange, "Missing or invalid Authorization header");
         }
 
         try {
             if (!jwtUtil.isTokenValid(token)) {
-                return writeErrorResponse(exchange, HttpStatus.UNAUTHORIZED, "Invalid JWT token");
+                return writeErrorResponse(exchange, JWT_TOKEN_INVALID);
             }
 
             String username = jwtUtil.extractUsername(token);
@@ -79,17 +76,14 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
         } catch (ExpiredJwtException ex) {
             log.debug("JWT token expired for path {}: {}", requestPath, ex.getMessage());
-            return writeErrorResponse(exchange, HttpStatus.UNAUTHORIZED, "JWT token expired");
+            return writeErrorResponse(exchange, JWT_TOKEN_EXPIRED);
         } catch (JwtException ex) {
             log.error("JWT validation failed for path {}: {}", requestPath, ex.getMessage());
-            return writeErrorResponse(exchange, HttpStatus.UNAUTHORIZED, "JWT validation failed");
+            return writeErrorResponse(exchange, "JWT validation failed");
         }
     }
 
-    @Override
-    public int getOrder() {
-        return -1;
-    }
+
 
     private boolean isPublicEndpoint(String path) {
         return securityProperties.getPublicEndpoints().stream()
@@ -102,7 +96,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return null;
         }
 
-        String authorization = authorizationHeaders.get(0);
+        String authorization = authorizationHeaders.getFirst();
         if (!StringUtils.hasText(authorization) || !authorization.startsWith(BEARER_PREFIX)) {
             return null;
         }
@@ -110,15 +104,15 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         return authorization.substring(BEARER_PREFIX.length());
     }
 
-    private Mono<Void> writeErrorResponse(ServerWebExchange exchange, HttpStatus status, String message) {
+    private Mono<Void> writeErrorResponse(ServerWebExchange exchange, String message) {
         ServerHttpResponse response = exchange.getResponse();
-        response.setStatusCode(status);
+        response.setStatusCode(HttpStatus.UNAUTHORIZED);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
         Map<String, Object> responseBody = Map.of(
                 "timestamp", Instant.now().toString(),
-                "status", status.value(),
-                "error", status.getReasonPhrase(),
+                "status", HttpStatus.UNAUTHORIZED.value(),
+                "error", HttpStatus.UNAUTHORIZED.getReasonPhrase(),
                 "message", message,
                 "path", exchange.getRequest().getURI().getPath()
         );
@@ -131,6 +125,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             byte[] fallback = ("{\"message\":\"" + message + "\"}").getBytes(StandardCharsets.UTF_8);
             return response.writeWith(Mono.just(response.bufferFactory().wrap(fallback)));
         }
+    }
+
+    @Override
+    public int getOrder() {
+        return -1;
     }
 }
 

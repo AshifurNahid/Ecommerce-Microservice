@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 
 @Component
@@ -27,74 +28,59 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${jwt.clock-skew:300000}")
-    private long clockSkew;
-
+    @Value("${jwt.clock-skew:300}")
+    private long clockSkewSeconds;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
+    @SuppressWarnings("unchecked")
     public List<String> extractRoles(String token) {
         Claims claims = extractAllClaims(token);
-        return Optional.ofNullable(claims.get("role", List.class)).orElse(List.of());
+        Object roles = claims.get("role");
+        if (roles instanceof List) {
+            return (List<String>) roles;
+        }
+        return List.of();
     }
-    public <T> T extractClaim(String token, java.util.function.Function<Claims, T> claimsResolver) {
+
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
     public boolean isTokenValid(String token) {
-        try {
-            extractAllClaims(token);
-            return !isTokenExpired(token);
-        } catch (JwtException | IllegalArgumentException e) {
-            log.error("Token validation failed: {}", e.getMessage());
+        if (token == null || token.isBlank()) {
             return false;
         }
-    }
-
-    private boolean isTokenExpired(String token) {
-        Date expiration = extractExpiration(token);
-        // Add clock skew tolerance
-        long skewMillis = Math.max(clockSkew, 0);
-        return expiration.before(new Date(System.currentTimeMillis() - skewMillis));
-    }
-
-
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+        try {
+            extractAllClaims(token);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            log.debug("Token validation failed: {}", e.getMessage());
+            return false;
+        }
     }
 
     private Claims extractAllClaims(String token) {
         try {
             SecretKey signingKey = getSignInKey();
-
-
             return Jwts.parser()
                     .verifyWith(signingKey)
-                    .clockSkewSeconds(clockSkew/1000)
+                    .clockSkewSeconds(clockSkewSeconds)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
         } catch (ExpiredJwtException e) {
             log.debug("JWT token is expired: {}", e.getMessage());
             throw e;
-        } catch (UnsupportedJwtException e) {
-            log.error("JWT token is unsupported: {}", e.getMessage());
-            throw e;
-        } catch (MalformedJwtException e) {
-            log.error("JWT token is malformed: {}", e.getMessage());
-            throw e;
-        } catch (SignatureException e) {
-            log.error("JWT signature validation failed: {}", e.getMessage());
-            throw e;
-        } catch (IllegalArgumentException e) {
-            log.error("JWT token compact of handler are invalid: {}", e.getMessage());
+        } catch (UnsupportedJwtException | MalformedJwtException |
+                 SignatureException | IllegalArgumentException e) {
+            log.error("JWT validation failed: {}", e.getMessage());
             throw e;
         }
     }
-
 
     private SecretKey getSignInKey() {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);

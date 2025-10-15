@@ -10,11 +10,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Centralised security settings for the gateway. The properties are intentionally injected via
- * {@link Value} so that they remain simple to override through configuration files or a config
- * server.
- */
 @Component
 public class GatewaySecurityProperties {
 

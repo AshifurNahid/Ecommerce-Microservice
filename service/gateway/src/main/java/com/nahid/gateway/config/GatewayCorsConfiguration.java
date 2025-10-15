@@ -9,11 +9,6 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import java.time.Duration;
 import java.util.List;
 
-/**
- * Centralised CORS configuration for the API gateway. By handling CORS here we
- * ensure every downstream microservice inherits a consistent security posture
- * without each service redefining the same rules.
- */
 @Configuration
 public class GatewayCorsConfiguration {
 
