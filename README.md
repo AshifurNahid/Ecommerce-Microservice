@@ -44,56 +44,72 @@ An end-to-end ecommerce domain implemented as Spring Boot microservices. The cod
 ## Architecture Overview
 
 ```mermaid
-flowchart TD
-    Client[Client] --> Gateway[API Gateway]
-
-    subgraph Core Services
-        Gateway --> UserSvc[User Service]
-        Gateway --> ProductSvc[Product Service]
-        Gateway --> OrderSvc[Order Service]
-        Gateway --> PaymentSvc[Payment Service]
-        Gateway --> NotificationSvc[Notification Service]
+graph TB
+    subgraph Public["Public Network"]
+        CLIENT[Client]
     end
-
-    UserSvc --> Postgres[(PostgreSQL)]
-    ProductSvc --> Postgres
-    OrderSvc --> Postgres
-    PaymentSvc --> Postgres
-    NotificationSvc --> Postgres
-
-    OrderSvc -->|Reserve/Confirm| ProductSvc
-    OrderSvc -->|Collect Payment| PaymentSvc
-    PaymentSvc -->|Notify| NotificationSvc
-
-    subgraph Platform Services
-        Config[Config Server]
-        Eureka[Eureka Server]
-        Zipkin[Zipkin]
-        Kafka[Kafka Broker]
+    
+    EUREKA[Eureka Server]
+    CONFIG[Config Server]
+    
+    subgraph Private["Private Network"]
+        GATEWAY[API Gateway]
+        
+        USER[User Service]
+        PRODUCT[Product Service]
+        ORDER[Order Service]
+        PAYMENT[Payment Service]
+        NOTIFICATION[Notification Service]
+        
+        USER_DB[(PostgreSQL)]
+        PRODUCT_DB[(PostgreSQL)]
+        ORDER_DB[(PostgreSQL)]
+        PAYMENT_DB[(PostgreSQL)]
+        NOTIFICATION_DB[(PostgreSQL)]
+        
+        KAFKA[Kafka Message Broker]
+        ZIPKIN[Zipkin Distributed Tracing]
     end
-
-    Config -.-> Gateway
-    Config -.-> UserSvc
-    Config -.-> ProductSvc
-    Config -.-> OrderSvc
-    Config -.-> PaymentSvc
-    Config -.-> NotificationSvc
-
-    UserSvc -.-> Eureka
-    ProductSvc -.-> Eureka
-    OrderSvc -.-> Eureka
-    PaymentSvc -.-> Eureka
-    NotificationSvc -.-> Eureka
-    Gateway -.-> Eureka
-
-    Gateway -.-> Zipkin
-    UserSvc -.-> Zipkin
-    ProductSvc -.-> Zipkin
-    OrderSvc -.-> Zipkin
-    PaymentSvc -.-> Zipkin
-    NotificationSvc -.-> Zipkin
-
-    Kafka --> NotificationSvc
+    
+    CLIENT -->|/customers| GATEWAY
+    CLIENT -->|/products| GATEWAY
+    CLIENT -->|/orders| GATEWAY
+    
+    GATEWAY --> USER
+    GATEWAY --> PRODUCT
+    GATEWAY --> ORDER
+    
+    ORDER -->|Create Payment| PAYMENT
+    ORDER -->|Send Order Confirmation| NOTIFICATION
+    
+    PAYMENT -->|Send Payment Confirmation| NOTIFICATION
+    PAYMENT -->|Payment Confirmed| KAFKA
+    
+    USER --> USER_DB
+    PRODUCT --> PRODUCT_DB
+    ORDER --> ORDER_DB
+    PAYMENT --> PAYMENT_DB
+    NOTIFICATION --> NOTIFICATION_DB
+    
+    KAFKA --> NOTIFICATION
+    
+    NOTIFICATION --> ZIPKIN
+    
+    classDef publicNet fill:#4a4a4a,stroke:#666,stroke-width:2px,color:#fff
+    classDef privateNet fill:#2a2a2a,stroke:#444,stroke-width:3px,color:#fff
+    classDef client fill:#E91E63,stroke:#C2185B,stroke-width:2px,color:#fff
+    classDef gateway fill:#F44336,stroke:#D32F2F,stroke-width:2px,color:#fff
+    classDef service fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    classDef database fill:#2196F3,stroke:#1976D2,stroke-width:2px,color:#fff
+    classDef infrastructure fill:#FFC107,stroke:#FFA000,stroke-width:2px,color:#000
+    
+    class Public publicNet
+    class Private privateNet
+    class CLIENT client
+    class GATEWAY gateway
+    class USER,PRODUCT,ORDER,PAYMENT,NOTIFICATION service
+    class USER_DB,PRODUCT_DB,ORDER_DB,PAYMENT_DB,NOTIFICATION_DB database
+    class EUREKA,CONFIG,KAFKA,ZIPKIN infrastructure
 ```
 
 The diagram mirrors the implementation in this repository: every service registers with Eureka, loads shared configuration, persists to its own datastore, and emits tracing data.
