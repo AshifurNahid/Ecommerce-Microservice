@@ -28,7 +28,7 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${jwt.clock-skew:300}")
+    @Value("${jwt.clock-skew}")
     private long clockSkewSeconds;
 
     public String extractUsername(String token) {

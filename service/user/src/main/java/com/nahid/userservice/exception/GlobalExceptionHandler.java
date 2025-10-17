@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
             WebRequest request
 
     ) {
-        log.error("Unexpected error: {}", ex.getMessage(), ex);
+        //log.error("Unexpected error: {}", ex.getMessage(), ex);
         return ApiResponseUtil.failureWithHttpStatus(
                 ExceptionMessageConstant.UNEXPECTED_ERROR,
                 HttpStatus.INTERNAL_SERVER_ERROR
