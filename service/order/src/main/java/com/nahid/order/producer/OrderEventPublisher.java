@@ -1,6 +1,8 @@
 package com.nahid.order.producer;
 
 import com.nahid.order.dto.OrderEventDto;
+import com.nahid.order.exception.PublishOrderEventException;
+import com.nahid.order.util.constant.ExceptionMessageConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,9 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 
-
 @Slf4j
-
 @Service
 @RequiredArgsConstructor
 public class OrderEventPublisher {
@@ -24,42 +24,39 @@ public class OrderEventPublisher {
 
     @Value("${kafka.topic.order-notification}")
     private String orderNotificationTopic;
-
     public void publishOrderEvent(OrderEventDto orderEvent) {
+        validateOrderEvent(orderEvent);
 
-        try {
+        Message<OrderEventDto> message = MessageBuilder
+                .withPayload(orderEvent)
+                .setHeader(KafkaHeaders.TOPIC, orderNotificationTopic)
+                .setHeader(KafkaHeaders.KEY, orderEvent.getOrderId().toString())
+                .build();
 
-            if (orderEvent == null) {
-                log.error("Order event is null, cannot publish.");
-                return;
+        CompletableFuture<SendResult<String, OrderEventDto>> future = kafkaTemplate.send(message);
+
+        future.whenComplete((result, ex) -> {
+            if (ex != null) {
+                log.error("Failed to publish order event to Kafka. OrderId: {}, OrderNumber: {}, Topic: {}", orderEvent.getOrderId(), orderEvent.getOrderNumber(), orderNotificationTopic, ex);
             }
-            if (orderEvent.getOrderId() == null || orderEvent.getOrderNumber() == null) {
-                log.error("Order event is missing required fields: {}", orderEvent);
-                return;
-            }
-
-
-            Message<OrderEventDto> message = MessageBuilder
-                    .withPayload(orderEvent)
-                    .setHeader(KafkaHeaders.TOPIC, orderNotificationTopic)
-                    .setHeader(KafkaHeaders.KEY, orderEvent.getOrderId().toString())
-                    .build();
-
-            CompletableFuture<SendResult<String, OrderEventDto>> future = kafkaTemplate.send(message);
-            future.whenComplete((result, ex) -> {
-                if (ex != null) {
-                    log.error("Failed to send order event: {}", ex.getMessage());
-                } else {
-                    log.info("Order event sent successfully: {}", result.getProducerRecord().value());
-                }
-            });
-        }
-        catch (Exception e) {
-            log.error("Error publishing order event: {}", e.getMessage(), e);
-        }
-
+        });
     }
 
-
-
+    private void validateOrderEvent(OrderEventDto orderEvent) {
+        if (orderEvent == null) {
+            throw new PublishOrderEventException(
+                    ExceptionMessageConstant.EVENT_PUBLISH_FAILED + ": Order event is null"
+            );
+        }
+        if (orderEvent.getOrderId() == null) {
+            throw new PublishOrderEventException(
+                    ExceptionMessageConstant.EVENT_PUBLISH_FAILED + ": Order ID is null"
+            );
+        }
+        if (orderEvent.getOrderNumber() == null) {
+            throw new PublishOrderEventException(
+                    ExceptionMessageConstant.EVENT_PUBLISH_FAILED + ": Order number is null"
+            );
+        }
+    }
 }

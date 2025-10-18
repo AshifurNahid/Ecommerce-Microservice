@@ -35,4 +35,9 @@ public class ExceptionMessageConstant {
     // Product-related Exception Messages
     public static final String PRODUCT_RESERVATION_FAILED = "Product reservation failed: %s";
     public static final String PRODUCT_PRICE_FETCH_FAILED = "Product price lookup failed: %s";
+
+
+    // Event Exception Messages
+    public static final String EVENT_PUBLISH_FAILED = "Failed to publish event: %s";
+    public static final String EVENT_PUBLISH_SUCCESSFUL = "Event published successfully: %s";
 }
