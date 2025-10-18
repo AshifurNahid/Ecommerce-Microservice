@@ -6,8 +6,9 @@ import com.nahid.order.dto.request.OrderDto;
 import com.nahid.order.dto.response.ApiResponse;
 import com.nahid.order.enums.OrderStatus;
 import com.nahid.order.service.OrderService;
-import com.nahid.order.util.helper.ApiResponseUtil;
+import com.nahid.order.util.constant.AppConstant;
 import com.nahid.order.util.constant.ApiResponseConstant;
+import com.nahid.order.util.helper.ApiResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -39,19 +40,29 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<ApiResponse<OrderDto>> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         OrderDto orderDto = orderService.createOrder(request);
-        return ApiResponseUtil.success(orderDto, ApiResponseConstant.ORDER_CREATED_SUCCESSFULLY, HttpStatus.CREATED);
+        return ApiResponseUtil.success(
+                orderDto,
+                String.format(ApiResponseConstant.CREATE_SUCCESSFUL, AppConstant.ORDER),
+                HttpStatus.CREATED
+        );
     }
 
     @GetMapping("/{orderId}")
     public ResponseEntity<ApiResponse<OrderDto>> getOrderById(@PathVariable UUID orderId) {
         OrderDto orderDto = orderService.getOrderById(orderId);
-        return ApiResponseUtil.success(orderDto, ApiResponseConstant.ORDER_FETCHED_SUCCESSFULLY);
+        return ApiResponseUtil.success(
+                orderDto,
+                String.format(ApiResponseConstant.FETCH_SUCCESSFUL, AppConstant.ORDER)
+        );
     }
 
     @GetMapping("/order-number/{orderNumber}")
     public ResponseEntity<ApiResponse<OrderDto>> getOrderByOrderNumber(@PathVariable String orderNumber) {
         OrderDto orderDto = orderService.getOrderByOrderNumber(orderNumber);
-        return ApiResponseUtil.success(orderDto, ApiResponseConstant.ORDER_FETCHED_SUCCESSFULLY);
+        return ApiResponseUtil.success(
+                orderDto,
+                String.format(ApiResponseConstant.FETCH_SUCCESSFUL, AppConstant.ORDER)
+        );
     }
 
     @GetMapping
@@ -67,7 +78,10 @@ public class OrderController {
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<OrderDto> orders = orderService.getAllOrders(pageable);
 
-        return ApiResponseUtil.success(orders, ApiResponseConstant.ORDERS_FETCHED_SUCCESSFULLY);
+        return ApiResponseUtil.success(
+                orders,
+                String.format(ApiResponseConstant.FETCH_ALL_SUCCESSFUL, AppConstant.ORDERS)
+        );
     }
 
     @GetMapping("/user/{userId}")
@@ -79,13 +93,19 @@ public class OrderController {
         Pageable pageable = PageRequest.of(page, size);
         Page<OrderDto> orders = orderService.getOrdersByUserId(userId, pageable);
 
-        return ApiResponseUtil.success(orders, ApiResponseConstant.ORDERS_BY_USER_FETCHED);
+        return ApiResponseUtil.success(
+                orders,
+                String.format(ApiResponseConstant.FETCH_ALL_SUCCESSFUL, AppConstant.ORDERS)
+        );
     }
 
     @GetMapping("/status/{status}")
     public ResponseEntity<ApiResponse<List<OrderDto>>> getOrdersByStatus(@PathVariable OrderStatus status) {
         List<OrderDto> orders = orderService.getOrdersByStatus(status);
-        String message = String.format(ApiResponseConstant.ORDERS_BY_STATUS_FETCHED, status);
+        String message = String.format(
+                ApiResponseConstant.FETCH_ALL_SUCCESSFUL,
+                AppConstant.ORDERS + " with status " + status.name()
+        );
         return ApiResponseUtil.success(orders, message);
     }
 
@@ -95,13 +115,20 @@ public class OrderController {
             @RequestParam OrderStatus status) {
 
         OrderDto orderDto = orderService.updateOrderStatus(orderId, status);
-        return ApiResponseUtil.success(orderDto, ApiResponseConstant.ORDER_STATUS_UPDATED);
+        return ApiResponseUtil.success(
+                orderDto,
+                String.format(ApiResponseConstant.STATUS_UPDATE_SUCCESSFUL, AppConstant.ORDER, status.name())
+        );
     }
 
     @DeleteMapping("/{orderId}")
     public ResponseEntity<ApiResponse<Void>> cancelOrder(@PathVariable UUID orderId) {
         orderService.cancelOrder(orderId);
-        return ApiResponseUtil.success(null, ApiResponseConstant.ORDER_CANCELLED_SUCCESSFULLY, HttpStatus.NO_CONTENT);
+        return ApiResponseUtil.success(
+                null,
+                String.format(ApiResponseConstant.DELETE_SUCCESSFUL, AppConstant.ORDER),
+                HttpStatus.NO_CONTENT
+        );
     }
 
     @GetMapping("/user/{userId}/count")
@@ -109,6 +136,9 @@ public class OrderController {
             @PathVariable Long userId,
             @RequestParam OrderStatus status) {
         long count = orderService.getOrderCountByUserAndStatus(userId, status);
-        return ApiResponseUtil.success(count, ApiResponseConstant.ORDER_COUNT_FETCHED);
+        return ApiResponseUtil.success(
+                count,
+                String.format(ApiResponseConstant.FETCH_SUCCESSFUL, AppConstant.ORDER_COUNT)
+        );
     }
 }
