@@ -1,4 +1,4 @@
-package com.nahid.userservice.aspects;
+package com.nahid.notification.aspects;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +14,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @Component
 @Slf4j
 public class LoggingAspect {
-    @Pointcut("within(com.nahid.userservice.controller..*) ")
+
+    @Pointcut("within(com.nahid.notification.controller..*) ")
     public void controllerMethods() {}
 
     @Around("controllerMethods()")
@@ -41,30 +42,6 @@ public class LoggingAspect {
             throw e;
         }
     }
-
-//    @Around("@annotation(com.sil.userservice.util.annotation.LogThis)")
-//    public Object logMethod(ProceedingJoinPoint joinPoint) throws Throwable {
-//        long start = System.currentTimeMillis();
-//
-//        String methodName = joinPoint.getSignature().toShortString();
-//        Object[] args = joinPoint.getArgs();
-//
-//        log.info("➡ Entering {} with args {}", methodName, args);
-//
-//        try {
-//            Object result = joinPoint.proceed();
-//            long timeTaken = System.currentTimeMillis() - start;
-//
-//            log.info("⬅ Exiting {} | Returned={} | ExecutionTime={}ms",
-//                    methodName, result, timeTaken);
-//
-//            return result;
-//        } catch (Exception e) {
-//            log.error("❌ Exception in {} | Message={}",
-//                    methodName, e.getMessage(), e);
-//            throw e;
-//        }
-//    }
 
     private HttpServletRequest getCurrentRequest() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -102,5 +79,5 @@ public class LoggingAspect {
     private String getNonBlankValue(String value) {
         return (value != null && !value.isBlank()) ? value : "N/A";
     }
-
 }
+
