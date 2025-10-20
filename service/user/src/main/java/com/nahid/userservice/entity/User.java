@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,8 +19,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "users")
-@RequiredArgsConstructor
-@Builder
+@NoArgsConstructor
+@SuperBuilder
 @Setter
 @Getter
 @AllArgsConstructor
