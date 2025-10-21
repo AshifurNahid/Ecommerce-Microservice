@@ -2,6 +2,21 @@
 
 A production-grade Spring Boot 3.5.3 REST API with JWT authentication, built with Java 21 and Spring Security 6.x.
 
+## 📖 Spring Security Deep Dive Documentation
+
+**NEW!** Complete Spring Security architecture documentation with step-by-step flows and visual diagrams:
+
+👉 **[Start Here: Spring Security Deep Dive](./docs/SPRING_SECURITY_INDEX.md)** 👈
+
+Learn how all Spring Security components work together:
+- **Part 1:** Filter Chain, JWT Authentication Filter, Security Context
+- **Part 2:** Authentication Manager, Password Encoder, UserDetailsService
+- **Part 3:** Registration & Login Flows (complete step-by-step)
+- **Part 4:** JWT Request Validation & Authorization
+- **Part 5:** Best Practices, Security Pitfalls, Production Tips
+
+Perfect for understanding Spring Security from the ground up! 🚀
+
 ## Features
 
 - ✅ **JWT Authentication** with access & refresh tokens

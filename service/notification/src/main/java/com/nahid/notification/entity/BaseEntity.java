@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 public abstract class BaseEntity<T> {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private T id;
 
     @Version
