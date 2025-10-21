@@ -26,35 +26,28 @@ public class CategoryController {
     public ResponseEntity<ApiResponse<CategoryResponseDto>> createCategory(@Valid @RequestBody CreateCategoryRequestDto request) {
         CategoryResponseDto response = categoryService.createCategory(request);
         return ApiResponseUtil.success(
-                response,
-                String.format(ApiResponseConstant.CREATE_SUCCESSFUL, AppConstant.CATEGORY),
-                HttpStatus.CREATED
-        );
+                response, String.format(ApiResponseConstant.CREATE_SUCCESSFUL, AppConstant.CATEGORY),
+                HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CategoryResponseDto>> getCategoryById(@PathVariable Long id) {
         CategoryResponseDto response = categoryService.getCategoryById(id);
         return ApiResponseUtil.success(
-                response,
-                String.format(ApiResponseConstant.FETCH_SUCCESSFUL, AppConstant.CATEGORY)
-        );
+                response, String.format(ApiResponseConstant.FETCH_SUCCESSFUL, AppConstant.CATEGORY));
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<CategoryResponseDto>>> getAllCategories() {
         List<CategoryResponseDto> response = categoryService.getAllCategories();
-        return ApiResponseUtil.success(
-                response,
-                String.format(ApiResponseConstant.FETCH_ALL_SUCCESSFUL, AppConstant.CATEGORIES)
-        );
+        return ApiResponseUtil.success(response,
+                String.format(ApiResponseConstant.FETCH_ALL_SUCCESSFUL, AppConstant.CATEGORIES));
     }
 
     @GetMapping("/active")
     public ResponseEntity<ApiResponse<List<CategoryResponseDto>>> getActiveCategories() {
         List<CategoryResponseDto> response = categoryService.getActiveCategories();
-        return ApiResponseUtil.success(
-                response,
+        return ApiResponseUtil.success(response,
                 String.format(ApiResponseConstant.FETCH_SUCCESSFUL, AppConstant.ACTIVE_CATEGORIES)
         );
     }
@@ -63,9 +56,6 @@ public class CategoryController {
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
         return ApiResponseUtil.success(
-                null,
-                String.format(ApiResponseConstant.DELETE_SUCCESSFUL, AppConstant.CATEGORY),
-                HttpStatus.NO_CONTENT
-        );
+                null, String.format(ApiResponseConstant.DELETE_SUCCESSFUL, AppConstant.CATEGORY), HttpStatus.NO_CONTENT);
     }
 }
