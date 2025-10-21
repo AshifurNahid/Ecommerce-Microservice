@@ -33,10 +33,7 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<ApiResponse<ProductResponseDto>> createProduct(@Valid @RequestBody CreateProductRequestDto request) {
         ProductResponseDto response = productService.createProduct(request);
-        return ApiResponseUtil.success(
-                response,
-                String.format(ApiResponseConstant.CREATE_SUCCESSFUL, AppConstant.PRODUCT),
-                HttpStatus.CREATED
+        return ApiResponseUtil.success(response, String.format(ApiResponseConstant.CREATE_SUCCESSFUL, AppConstant.PRODUCT), HttpStatus.CREATED
         );
     }
 
@@ -46,8 +43,7 @@ public class ProductController {
         return ApiResponseUtil.success(
                 response,
                 String.format(ApiResponseConstant.ACTION_SUCCESSFUL, AppConstant.INVENTORY, AppConstant.RESERVED),
-                HttpStatus.OK
-        );
+                HttpStatus.OK);
     }
 
     @PostMapping("/inventory/reservations/{orderReference}/confirm")
@@ -58,10 +54,7 @@ public class ProductController {
                 String.format(
                         ApiResponseConstant.STATUS_UPDATE_SUCCESSFUL,
                         AppConstant.INVENTORY_RESERVATION,
-                        AppConstant.CONFIRMED
-                ),
-                HttpStatus.OK
-        );
+                        AppConstant.CONFIRMED), HttpStatus.OK);
     }
 
     @PostMapping("/inventory/reservations/{orderReference}/release")
@@ -147,8 +140,7 @@ public class ProductController {
         List<ProductResponseDto> response = productService.getFeaturedProducts();
         return ApiResponseUtil.success(
                 response,
-                String.format(ApiResponseConstant.FETCH_SUCCESSFUL, AppConstant.FEATURED_PRODUCTS)
-        );
+                String.format(ApiResponseConstant.FETCH_SUCCESSFUL, AppConstant.FEATURED_PRODUCTS));
     }
 
     @GetMapping("/low-stock")
@@ -156,8 +148,7 @@ public class ProductController {
         List<ProductResponseDto> response = productService.getLowStockProducts();
         return ApiResponseUtil.success(
                 response,
-                String.format(ApiResponseConstant.FETCH_SUCCESSFUL, AppConstant.LOW_STOCK_PRODUCTS)
-        );
+                String.format(ApiResponseConstant.FETCH_SUCCESSFUL, AppConstant.LOW_STOCK_PRODUCTS));
     }
 
     @PutMapping("/{id}")
@@ -167,8 +158,7 @@ public class ProductController {
         ProductResponseDto response = productService.updateProduct(id, request);
         return ApiResponseUtil.success(
                 response,
-                String.format(ApiResponseConstant.UPDATE_SUCCESSFUL, AppConstant.PRODUCT)
-        );
+                String.format(ApiResponseConstant.UPDATE_SUCCESSFUL, AppConstant.PRODUCT));
     }
 
     @DeleteMapping("/{id}")
@@ -177,8 +167,7 @@ public class ProductController {
         return ApiResponseUtil.success(
                 null,
                 String.format(ApiResponseConstant.DELETE_SUCCESSFUL, AppConstant.PRODUCT),
-                HttpStatus.NO_CONTENT
-        );
+                HttpStatus.NO_CONTENT);
     }
 
     @PatchMapping("/{id}/stock")
@@ -188,8 +177,7 @@ public class ProductController {
         ProductResponseDto response = productService.updateStock(id, stock);
         return ApiResponseUtil.success(
                 response,
-                String.format(ApiResponseConstant.UPDATE_SUCCESSFUL, AppConstant.PRODUCT_STOCK)
-        );
+                String.format(ApiResponseConstant.UPDATE_SUCCESSFUL, AppConstant.PRODUCT_STOCK));
     }
 
     @GetMapping("/{id}/availability")
@@ -199,7 +187,6 @@ public class ProductController {
         boolean isAvailable = productService.isProductAvailable(id, quantity);
         return ApiResponseUtil.success(
                 isAvailable,
-                String.format(ApiResponseConstant.ACTION_SUCCESSFUL, AppConstant.PRODUCT_AVAILABILITY, AppConstant.CHECKED)
-        );
+                String.format(ApiResponseConstant.ACTION_SUCCESSFUL, AppConstant.PRODUCT_AVAILABILITY, AppConstant.CHECKED));
     }
 }
