@@ -7,5 +7,10 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface audit {
+public @interface Auditable {
+
+    String actionType() default "";
+    String entity() default "";
+    String serviceName();
+
 }
