@@ -16,6 +16,7 @@ import com.nahid.product.service.ProductService;
 import com.nahid.product.service.InventoryService;
 import com.nahid.product.service.PurchaseService;
 
+import com.nahid.product.util.annotation.Auditable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -42,6 +43,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    @Auditable(eventType = "CREATE", entityType = "Product", action = "CREATE_PRODUCT")
     public ProductResponseDto createProduct(CreateProductRequestDto request) {
 
         if (productRepository.existsBySku(request.getSku())) {
