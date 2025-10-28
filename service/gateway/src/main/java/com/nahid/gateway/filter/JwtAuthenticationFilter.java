@@ -38,7 +38,7 @@ import static com.nahid.gateway.util.constant.ExceptionMessageConstant.JWT_TOKEN
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final String HEADER_USER_EMAIL = "X-Auth-User";
+    private static final String HEADER_USER_ID = "X-Auth-User";
     private static final String HEADER_USER_ROLES = "X-Auth-Roles";
 
     private final JwtUtil jwtUtil;
@@ -69,7 +69,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             List<String> roles = jwtUtil.extractRoles(token);
 
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                    .header(HEADER_USER_EMAIL, username)
+                    .header(HEADER_USER_ID, username)
                     .header(HEADER_USER_ROLES, roles == null ? "" : String.join(",", roles))
                     .build();
 

@@ -4,7 +4,6 @@ package com.nahid.audit.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.Map;
 
 @Data
 @Table(name="audit_log")
@@ -27,13 +26,5 @@ public class AuditLog {
     private String entityId;
 
     private String actionType;
-
-//    @Type(type = "jsonb")
-//    @Column(columnDefinition = "jsonb")
-//    private Map<String, Object> beforeState;
-//
-//    @Type(type = "jsonb")
-//    @Column(columnDefinition = "jsonb")
-//    private Map<String, Object> afterState;
 
 }
