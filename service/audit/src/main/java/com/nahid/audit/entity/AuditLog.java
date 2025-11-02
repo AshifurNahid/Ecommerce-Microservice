@@ -1,6 +1,7 @@
 package com.nahid.audit.entity;
 
 
+import com.nahid.audit.enums.EventStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -22,8 +23,11 @@ public class AuditLog {
     @Column(name="event_id",nullable = false, unique = true, length = 100)
     private String eventId;
 
-    @Column(name = "event_type", nullable = false, unique = true, length = 100)
+    @Column(name = "event_type", length = 100)
     private String eventType;
+
+    @Column(name = "service_name", nullable = false, length = 100)
+    private String serviceName;
 
     @Column(name="entity_name", nullable = false, length = 100)
     private String entityName;
@@ -43,8 +47,9 @@ public class AuditLog {
     @Column(name = "ip_address")
     private String ipAddress;
 
-    @Column(name = "status")
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private EventStatus status;
 
     @Column(name = "error_message")
     private String errorMessage;

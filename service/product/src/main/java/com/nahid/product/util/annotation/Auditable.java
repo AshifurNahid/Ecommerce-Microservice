@@ -9,6 +9,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Auditable {
     String eventType();
-    String entityType();
+    String entityName();
     String action();
 }

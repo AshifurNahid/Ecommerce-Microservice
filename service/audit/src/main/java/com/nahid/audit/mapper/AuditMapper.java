@@ -5,12 +5,12 @@ import com.nahid.audit.entity.AuditLog;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+
 @Mapper(componentModel = "spring")
 public interface  AuditMapper {
     @Mapping(target = "id", ignore = true)
     AuditLog toEntity(AuditEventDTO auditEventDTO);
 
-    @Mapping(target = "id", ignore = true)
     AuditEventDTO toDto(AuditLog auditLog);
 
 }

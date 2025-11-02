@@ -24,14 +24,14 @@ public class AuditEventConsumer {
                        @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
                        @Header(KafkaHeaders.OFFSET) long offset,
                        Acknowledgment acknowledgment) {
-        log.info("Received payment notification from topic: {}, partition: {}, offset: {},eventId: {}",
+        log.info("Received Audit Event from topic: {}, partition: {}, offset: {},eventId: {}",
                 topic, partition, offset, auditEventDTO.getEventId());
 
         try{
             auditService.processAuditEvent(auditEventDTO);
             acknowledgment.acknowledge();
         }catch (Exception e){
-            log.error("Error processing payment notification for eventId: {}. Error: {}",
+            log.error("Error processing Audit Event for eventId: {}. Error: {}",
                     auditEventDTO.getEventId(), e.getMessage(), e);
             acknowledgment.acknowledge();
 
