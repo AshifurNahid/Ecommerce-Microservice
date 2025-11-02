@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -17,7 +18,7 @@ public class AuditEventMessageDto {
     private String userId;
     private String action;
     @Builder.Default
-    private Instant timestamp = Instant.now() ;
+    private LocalDateTime timestamp = LocalDateTime.now();
     private String ipAddress;
     private EventStatus status;
     private String errorMessage;

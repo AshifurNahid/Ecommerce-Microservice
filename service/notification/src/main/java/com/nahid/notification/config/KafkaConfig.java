@@ -37,13 +37,9 @@ public class KafkaConfig {
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-
-        // Set type mappings (crucial fix)
         props.put(JsonDeserializer.TYPE_MAPPINGS,
                 "com.nahid.payment.dto.PaymentNotificationDto:com.nahid.notification.dto.PaymentNotificationDto");
 
-        // Remove or change this line - it's causing problems
-        // props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.nahid.notification.dto");
 
         return new DefaultKafkaConsumerFactory<>(props);
     }
@@ -59,7 +55,8 @@ public class KafkaConfig {
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, OrderEventDto.class);
-
+        props.put(JsonDeserializer.TYPE_MAPPINGS,
+                "com.nahid.order.dto.OrderEventDto:com.nahid.notification.dto.OrderEventDto");
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
