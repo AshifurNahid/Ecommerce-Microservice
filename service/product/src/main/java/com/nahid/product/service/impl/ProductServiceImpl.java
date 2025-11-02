@@ -29,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static com.nahid.product.util.constant.AppConstant.PRODUCT;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -42,8 +44,8 @@ public class ProductServiceImpl implements ProductService {
     private final PurchaseService purchaseService;
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    @Auditable(eventType = "CREATE", entityType = "Product", action = "CREATE_PRODUCT")
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.REPEATABLE_READ, rollbackFor = Exception.class)
+    @Auditable(eventType = "CREATE", entityName = PRODUCT, action = "CREATE_PRODUCT")
     public ProductResponseDto createProduct(CreateProductRequestDto request) {
 
         if (productRepository.existsBySku(request.getSku())) {

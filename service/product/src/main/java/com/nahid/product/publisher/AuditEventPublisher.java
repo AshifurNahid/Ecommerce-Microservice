@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class AuditEventPublisher {
 
     private final KafkaTemplate<String, AuditEventMessageDto> auditKafkaTemplate;
-    @Value("${kafka.topic.audit-events}")
+    @Value("${spring.kafka.topic.audit-topic}")
     private String auditTopic;
 
     public void publishAuditEvent(AuditEventMessageDto auditEventMessageDto) {

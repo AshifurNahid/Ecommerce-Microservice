@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
@@ -24,6 +25,8 @@ public class AuditAspect {
 
     private final AuditEventPublisher auditEventPublisher;
     private final HttpServletRequest request;
+    @Value("${spring.application.name}")
+    private String serviceName;
 
     @Around("@annotation(auditable)")
     public Object auditMethod(ProceedingJoinPoint joinPoint, Auditable auditable) throws Throwable {
@@ -47,9 +50,10 @@ public class AuditAspect {
                 .entityId(this.extractEntityId(result))
                 .userId(this.getUserId())
                 .ipAddress(this.getIpAddress() )
+                .serviceName(serviceName)
                 .status(eventStatus)
                 .eventType(auditable.eventType())
-                .entityType(auditable.entityType())
+                .entityName(auditable.entityName())
                 .userId(this.getUserId())
                 .action(auditable.action())
                 .errorMessage(errorMessage)

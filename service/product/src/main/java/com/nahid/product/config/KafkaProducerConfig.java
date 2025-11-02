@@ -40,7 +40,7 @@ public class KafkaProducerConfig {
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        configProps.put(JsonSerializer.TYPE_MAPPINGS, "auditEventMessageDto:com.nahid.product.dto.event.AuditEventMessageDto");
+        configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);  // Disable type headers
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 

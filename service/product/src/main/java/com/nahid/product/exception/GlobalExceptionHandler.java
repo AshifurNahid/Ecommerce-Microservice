@@ -20,26 +20,22 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
-        log.error("Resource not found: {}", ex.getMessage());
         return ApiResponseUtil.failureWithHttpStatus(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
 
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiResponse<Object>> handleDuplicateResourceException(DuplicateResourceException ex) {
-        log.error("Duplicate resource: {}", ex.getMessage());
         return ApiResponseUtil.failureWithHttpStatus(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(PurchaseException.class)
     public ResponseEntity<ApiResponse<Object>> handlePurchaseException(PurchaseException ex) {
-        log.error("Purchase operation failed: {}", ex.getMessage());
         return ApiResponseUtil.failureWithHttpStatus(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        log.error("Validation failed: {}", ex.getMessage());
 
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
@@ -53,13 +49,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(StockUpdateException.class)
     public ResponseEntity<ApiResponse<Object>> handleStockUpdateException(StockUpdateException ex) {
-        log.error("Stock update failed: {}", ex.getMessage());
         return ApiResponseUtil.failureWithHttpStatus(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
-        log.error("Unexpected error occurred: ", ex);
         return ApiResponseUtil.failure("An unexpected error occurred");
     }
 }

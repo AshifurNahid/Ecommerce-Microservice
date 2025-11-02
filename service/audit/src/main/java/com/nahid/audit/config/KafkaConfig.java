@@ -22,7 +22,7 @@ public class KafkaConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
-    @Value("${spring.kafka.group-id}")
+    @Value("${spring.kafka.consumer.group-id}")
     private String groupId;
 
     @Bean
@@ -34,10 +34,10 @@ public class KafkaConfig {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, AuditEventDTO.class.getName());
-        props.put(JsonDeserializer.TYPE_MAPPINGS,
-                "com.nahid.product.dto.event.AuditEventMessageDto:com.nahid.audit.dto.AuditEventDTO");
+
 
         return new DefaultKafkaConsumerFactory<>(props);
     }
