@@ -7,6 +7,7 @@ import com.nahid.userservice.entity.RefreshToken;
 import com.nahid.userservice.entity.User;
 import com.nahid.userservice.exception.AuthenticationException;
 import com.nahid.userservice.exception.ResourceNotFoundException;
+import com.nahid.userservice.util.annotation.Auditable;
 import com.nahid.userservice.mapper.UserMapper;
 import com.nahid.userservice.repository.RefreshTokenRepository;
 import com.nahid.userservice.repository.UserRepository;
@@ -21,6 +22,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import static com.nahid.userservice.util.constant.AppConstant.USER;
 import static com.nahid.userservice.util.constant.ExceptionMessageConstant.*;
 
 
@@ -49,6 +51,7 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
+    @Auditable(eventType = "ACCESS", entityName = USER, action = "LOGOUT_USER")
     public String logout(String authHeader) {
         log.info("Attempting logout with authorization header");
 

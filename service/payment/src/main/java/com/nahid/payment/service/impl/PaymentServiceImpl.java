@@ -10,6 +10,7 @@ import com.nahid.payment.mapper.PaymentMapper;
 import com.nahid.payment.producer.PaymentNotificationProducer;
 import com.nahid.payment.repository.PaymentRepository;
 import com.nahid.payment.service.PaymentService;
+import com.nahid.payment.util.annotation.Auditable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+
+import static com.nahid.payment.util.constant.AppConstant.PAYMENT;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +34,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentNotificationProducer notificationProducer;
 
     @Override
+    @Auditable(eventType = "CREATE", entityName = PAYMENT, action = "PROCESS_PAYMENT")
     public PaymentResponseDto processPayment(PaymentRequestDto requestDto) {
         log.info("Processing payment for order: {}, customer: {}, amount: {}",
                 requestDto.getOrderId(), requestDto.getCustomerId(), requestDto.getAmount());
@@ -89,6 +93,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Auditable(eventType = "UPDATE", entityName = PAYMENT, action = "CANCEL_PAYMENT")
     public PaymentResponseDto cancelPayment(UUID paymentId) {
         log.info("Cancelling payment with ID: {}", paymentId);
 
@@ -110,6 +115,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Auditable(eventType = "UPDATE", entityName = PAYMENT, action = "REFUND_PAYMENT")
     public PaymentResponseDto refundPayment(UUID paymentId, BigDecimal refundAmount) {
         log.info("Processing refund for payment: {}, amount: {}", paymentId, refundAmount);
 
@@ -162,6 +168,7 @@ public class PaymentServiceImpl implements PaymentService {
 
 
     @Override
+    @Auditable(eventType = "UPDATE", entityName = PAYMENT, action = "RETRY_PAYMENT")
     public PaymentResponseDto retryFailedPayment(UUID paymentId) {
         log.info("Retrying failed payment: {}", paymentId);
 
@@ -288,6 +295,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Auditable(eventType = "UPDATE", entityName = PAYMENT, action = "UPDATE_PAYMENT_STATUS")
     public PaymentResponseDto updatePaymentStatus(UUID paymentId, PaymentStatus status) {
         log.info("Updating payment status. Payment ID: {}, New Status: {}", paymentId, status);
 

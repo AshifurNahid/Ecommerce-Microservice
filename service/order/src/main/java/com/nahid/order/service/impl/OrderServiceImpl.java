@@ -19,6 +19,7 @@ import com.nahid.order.service.OrderService;
 import com.nahid.order.service.OrderStatusService;
 import com.nahid.order.service.ProductPurchaseService;
 import com.nahid.order.service.UserValidationService;
+import com.nahid.order.util.annotation.Auditable;
 import com.nahid.order.util.constant.ExceptionMessageConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static com.nahid.order.util.constant.AppConstant.ORDER;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +52,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderEventPublisher orderEventPublisher;
 
     @Override
+    @Auditable(eventType = "CREATE", entityName = ORDER, action = "CREATE_ORDER")
     public OrderDto createOrder(CreateOrderRequest request) {
         String orderNumber = null;
         boolean reservationCreated = false;
@@ -190,6 +194,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Auditable(eventType = "UPDATE", entityName = ORDER, action = "UPDATE_ORDER_STATUS")
     public OrderDto updateOrderStatus(UUID orderId, OrderStatus status) {
         try {
             Order order = orderRepository.findById(orderId)
@@ -210,6 +215,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Auditable(eventType = "UPDATE", entityName = ORDER, action = "CANCEL_ORDER")
     public void cancelOrder(UUID orderId) {
         try {
             Order order = orderRepository.findById(orderId)

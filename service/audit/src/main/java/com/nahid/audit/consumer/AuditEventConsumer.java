@@ -33,8 +33,7 @@ public class AuditEventConsumer {
         }catch (Exception e){
             log.error("Error processing Audit Event for eventId: {}. Error: {}",
                     auditEventDTO.getEventId(), e.getMessage(), e);
-            acknowledgment.acknowledge();
-
+            throw e;
         }
     }
 
