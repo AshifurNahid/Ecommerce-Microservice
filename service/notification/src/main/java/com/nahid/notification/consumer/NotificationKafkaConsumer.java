@@ -36,17 +36,16 @@ public class NotificationKafkaConsumer {
                 topic, partition, offset, paymentNotificationDto.getPaymentId());
 
         try {
-            // Validate required fields
-//            if (paymentNotificationDto.getPaymentId() == null) {
-//                log.error("Payment notification missing required paymentId");
-//                return;
-//            }
-//
-//            if (paymentNotificationDto.getCustomerId() == null || paymentNotificationDto.getCustomerId().isEmpty()) {
-//                log.error("Payment notification missing required customerId for paymentId: {}",
-//                        paymentNotificationDto.getPaymentId());
-//                return;
-//            }
+            if (paymentNotificationDto.getPaymentId() == null) {
+                log.error("Payment notification missing required paymentId");
+                return;
+            }
+
+            if (paymentNotificationDto.getCustomerId() == null || paymentNotificationDto.getCustomerId().isEmpty()) {
+                log.error("Payment notification missing required customerId for paymentId: {}",
+                        paymentNotificationDto.getPaymentId());
+                return;
+            }
 
             notificationService.processPaymentNotification(paymentNotificationDto);
             acknowledgment.acknowledge();
