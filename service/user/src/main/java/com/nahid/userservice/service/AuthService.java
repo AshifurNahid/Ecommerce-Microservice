@@ -10,6 +10,7 @@ import com.nahid.userservice.enums.Role;
 import com.nahid.userservice.exception.AuthenticationException;
 import com.nahid.userservice.repository.RefreshTokenRepository;
 import com.nahid.userservice.repository.UserRepository;
+import com.nahid.userservice.util.annotation.Auditable;
 import com.nahid.userservice.util.constant.ExceptionMessageConstant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+
+import static com.nahid.userservice.util.constant.AppConstant.USER;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +44,7 @@ public class AuthService {
     private long accessTokenExpiration;
 
     @Transactional
+    @Auditable(eventType = "CREATE", entityName = USER, action = "REGISTER_USER")
     public RegisterResponse register(RegisterRequest request) throws AuthenticationException {
 
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -65,6 +69,7 @@ public class AuthService {
     }
 
     @Transactional
+    @Auditable(eventType = "ACCESS", entityName = USER, action = "LOGIN_USER")
     public AuthResponse login(AuthRequest request) {
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(request.getEmail(),
@@ -78,6 +83,7 @@ public class AuthService {
     }
 
     @Transactional
+    @Auditable(eventType = "ACCESS", entityName = USER, action = "REFRESH_TOKEN")
     public AuthResponse refreshToken(String authHeader) {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
