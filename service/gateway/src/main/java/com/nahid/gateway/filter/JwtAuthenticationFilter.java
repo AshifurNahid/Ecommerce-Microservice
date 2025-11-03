@@ -41,6 +41,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String HEADER_CUSTOM_AUTH_CONTEXT = "X-Auth-Context";
+    private static final String HEADER_USER_ID = "X-Auth-User";
+    private static final String HEADER_USER_ROLES = "X-Auth-Roles";
 
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper;
@@ -80,6 +82,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                     .header(HEADER_CUSTOM_AUTH_CONTEXT, customAuthContextDtoBase64)
                     .build();
+
+//            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+//                    .header(HEADER_USER_ID, username)
+//                    .header(HEADER_USER_ROLES, roles == null ? "" : String.join(",", roles))
+//                    .build();
 
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
         } catch (ExpiredJwtException ex) {
