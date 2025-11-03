@@ -1,4 +1,4 @@
-package com.nahid.payment.dto;
+package com.nahid.payment.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.nahid.payment.enums.PaymentMethod;

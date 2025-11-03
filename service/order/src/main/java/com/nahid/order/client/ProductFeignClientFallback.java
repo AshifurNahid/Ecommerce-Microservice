@@ -16,8 +16,6 @@ public class ProductFeignClientFallback implements ProductClient {
     @Override
     public ResponseEntity<ApiResponse<PurchaseProductResponseDto>> reserveInventory(
             PurchaseProductRequestDto request) {
-        log.error("Fallback triggered for reserveInventory with orderReference: {}",
-                request != null ? request.getOrderReference() : "unknown");
 
         ApiResponse<PurchaseProductResponseDto> apiResponse = ApiResponse.<PurchaseProductResponseDto>builder()
                 .statusCode(HttpStatus.SERVICE_UNAVAILABLE.value())
@@ -32,13 +30,11 @@ public class ProductFeignClientFallback implements ProductClient {
 
     @Override
     public ResponseEntity<ApiResponse<Void>> confirmReservation(String orderReference) {
-        log.error("Fallback triggered for confirmReservation with orderReference: {}", orderReference);
         return buildUnavailableResponse("Product service is unavailable. Unable to confirm reservation.");
     }
 
     @Override
     public ResponseEntity<ApiResponse<Void>> releaseReservation(String orderReference) {
-        log.error("Fallback triggered for releaseReservation with orderReference: {}", orderReference);
         return buildUnavailableResponse("Product service is unavailable. Unable to release reservation.");
     }
 

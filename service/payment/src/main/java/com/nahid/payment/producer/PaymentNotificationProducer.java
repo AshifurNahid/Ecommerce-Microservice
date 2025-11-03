@@ -1,6 +1,6 @@
 package com.nahid.payment.producer;
 
-import com.nahid.payment.dto.PaymentNotificationDto;
+import com.nahid.payment.dto.event.PaymentNotificationDto;
 import com.nahid.payment.entity.Payment;
 import com.nahid.payment.enums.PaymentStatus;
 import com.nahid.payment.mapper.PaymentMapper;

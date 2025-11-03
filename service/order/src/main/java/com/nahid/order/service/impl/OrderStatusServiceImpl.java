@@ -28,7 +28,6 @@ public class OrderStatusServiceImpl implements OrderStatusService {
     @Override
     public void validateStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
         if (currentStatus == newStatus) {
-            log.debug("No status change required for order status: {}", currentStatus);
             return;
         }
 

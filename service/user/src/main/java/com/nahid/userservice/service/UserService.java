@@ -37,8 +37,6 @@ public class UserService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        log.debug("Loading user by username: {}", username);
-
         return userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException(
                     String.format(ExceptionMessageConstant.ENTITY_NOT_FOUND_BY_FIELD,
@@ -53,7 +51,6 @@ public class UserService implements UserDetailsService {
     @Transactional
     @Auditable(eventType = "ACCESS", entityName = USER, action = "LOGOUT_USER")
     public String logout(String authHeader) {
-        log.info("Attempting logout with authorization header");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new AuthenticationException(INVALID_REFRESH_TOKEN);

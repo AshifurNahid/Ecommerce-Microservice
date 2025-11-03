@@ -1,4 +1,4 @@
-package com.nahid.payment.publisher;
+package com.nahid.payment.producer;
 
 import com.nahid.payment.dto.event.AuditEventMessageDto;
 import lombok.RequiredArgsConstructor;
@@ -25,9 +25,6 @@ public class AuditEventPublisher {
                         .setHeader(KafkaHeaders.TOPIC, auditTopic)
                         .setHeader(KafkaHeaders.KEY, auditEventMessageDto.getEventId())
                         .build()
-        ).addCallback(
-                result -> log.debug("Audit event published with id {}", auditEventMessageDto.getEventId()),
-                ex -> log.error("Failed to publish audit event {}", auditEventMessageDto.getEventId(), ex)
         );
     }
 }

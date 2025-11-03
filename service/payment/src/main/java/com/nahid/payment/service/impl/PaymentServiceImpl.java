@@ -1,7 +1,7 @@
 package com.nahid.payment.service.impl;
 
-import com.nahid.payment.dto.PaymentRequestDto;
-import com.nahid.payment.dto.PaymentResponseDto;
+import com.nahid.payment.dto.request.PaymentRequestDto;
+import com.nahid.payment.dto.response.PaymentResponseDto;
 import com.nahid.payment.entity.Payment;
 import com.nahid.payment.enums.PaymentStatus;
 import com.nahid.payment.exception.PaymentException;
@@ -36,24 +36,15 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Auditable(eventType = "CREATE", entityName = PAYMENT, action = "PROCESS_PAYMENT")
     public PaymentResponseDto processPayment(PaymentRequestDto requestDto) {
-        log.info("Processing payment for order: {}, customer: {}, amount: {}",
-                requestDto.getOrderId(), requestDto.getCustomerId(), requestDto.getAmount());
 
-        // Check if payment already exists for this order
         if (paymentRepository.existsByOrderId(requestDto.getOrderId())) {
-            log.warn("Payment already exists for order: {}", requestDto.getOrderId());
             throw new PaymentException("Payment already exists for order: " + requestDto.getOrderId());
         }
-
-        // Create payment entity
         Payment payment = paymentMapper.toEntity(requestDto);
-
         try {
-            // Simulate payment processing (in real scenario, integrate with payment gateway)
             payment.setStatus(PaymentStatus.PROCESSING);
             payment = paymentRepository.save(payment);
 
-            // Simulate payment gateway processing
             boolean paymentSuccess = simulatePaymentGateway(payment);
 
             if (paymentSuccess) {
@@ -63,11 +54,6 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.setGatewayResponse("Payment processed successfully");
 
                 payment = paymentRepository.save(payment);
-
-                log.info("Payment processed successfully. Payment ID: {}, Transaction ID: {}",
-                        payment.getId(), payment.getTransactionId());
-
-                // Send notification to Kafka
                 notificationProducer.sendPaymentNotification(payment);
 
             } else {
@@ -77,12 +63,9 @@ public class PaymentServiceImpl implements PaymentService {
 
                 payment = paymentRepository.save(payment);
 
-                log.error("Payment failed for order: {}, reason: {}",
-                        requestDto.getOrderId(), payment.getFailureReason());
             }
 
         } catch (Exception e) {
-            log.error("Error processing payment for order: {}", requestDto.getOrderId(), e);
             payment.setStatus(PaymentStatus.FAILED);
             payment.setFailureReason("System error: " + e.getMessage());
             payment.setProcessedAt(LocalDateTime.now());
@@ -95,7 +78,6 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Auditable(eventType = "UPDATE", entityName = PAYMENT, action = "CANCEL_PAYMENT")
     public PaymentResponseDto cancelPayment(UUID paymentId) {
-        log.info("Cancelling payment with ID: {}", paymentId);
 
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found with ID: " + paymentId));
@@ -106,10 +88,8 @@ public class PaymentServiceImpl implements PaymentService {
 
         payment.setStatus(PaymentStatus.CANCELLED);
         payment.setProcessedAt(LocalDateTime.now());
-
         payment = paymentRepository.save(payment);
 
-        log.info("Payment cancelled successfully. Payment ID: {}", paymentId);
 
         return paymentMapper.toResponseDto(payment);
     }
@@ -117,7 +97,6 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Auditable(eventType = "UPDATE", entityName = PAYMENT, action = "REFUND_PAYMENT")
     public PaymentResponseDto refundPayment(UUID paymentId, BigDecimal refundAmount) {
-        log.info("Processing refund for payment: {}, amount: {}", paymentId, refundAmount);
 
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found with ID: " + paymentId));
@@ -129,23 +108,15 @@ public class PaymentServiceImpl implements PaymentService {
         if (refundAmount.compareTo(payment.getAmount()) > 0) {
             throw new PaymentException("Refund amount cannot be greater than payment amount");
         }
-
-        // In real scenario, process refund through payment gateway
         payment.setStatus(PaymentStatus.REFUNDED);
         payment.setProcessedAt(LocalDateTime.now());
-
         payment = paymentRepository.save(payment);
-
-        log.info("Payment refunded successfully. Payment ID: {}, Refund Amount: {}", paymentId, refundAmount);
-
         return paymentMapper.toResponseDto(payment);
     }
 
     @Override
     @Transactional(readOnly = true)
     public BigDecimal getUserTotalPaidAmount(Long userId) {
-        log.info("Calculating total paid amount for customer: {}", userId);
-
         BigDecimal totalAmount = paymentRepository.getTotalAmountByUserAndStatus(
                 userId, PaymentStatus.COMPLETED);
 
@@ -155,8 +126,6 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public List<PaymentResponseDto> getRecentPayments() {
-        log.info("Fetching recent payments (last 24 hours)");
-
         LocalDateTime since = LocalDateTime.now().minusHours(24);
         List<Payment> payments = paymentRepository.findRecentPayments(since);
 
@@ -170,7 +139,6 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Auditable(eventType = "UPDATE", entityName = PAYMENT, action = "RETRY_PAYMENT")
     public PaymentResponseDto retryFailedPayment(UUID paymentId) {
-        log.info("Retrying failed payment: {}", paymentId);
 
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found with ID: " + paymentId));
@@ -182,8 +150,6 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setStatus(PaymentStatus.PROCESSING);
         payment.setFailureReason(null);
         payment = paymentRepository.save(payment);
-
-        // Simulate payment gateway processing
         boolean paymentSuccess = simulatePaymentGateway(payment);
 
         if (paymentSuccess) {
@@ -191,11 +157,7 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setTransactionId(generateTransactionId());
             payment.setProcessedAt(LocalDateTime.now());
             payment.setGatewayResponse("Payment processed successfully on retry");
-
             payment = paymentRepository.save(payment);
-
-            log.info("Payment retry successful. Payment ID: {}, Transaction ID: {}",
-                    payment.getId(), payment.getTransactionId());
 
             // Send notification to Kafka
             notificationProducer.sendPaymentNotification(payment);
@@ -203,19 +165,14 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setStatus(PaymentStatus.FAILED);
             payment.setFailureReason("Payment gateway declined the transaction on retry");
             payment.setProcessedAt(LocalDateTime.now());
-
             payment = paymentRepository.save(payment);
 
-            log.error("Payment retry failed for payment: {}", paymentId);
         }
 
         return paymentMapper.toResponseDto(payment);
     }
 
-    /**
-     * Simulate payment gateway processing
-     * In real scenario, integrate with actual payment gateway (Stripe, PayPal, etc.)
-     */
+
     private boolean simulatePaymentGateway(Payment payment) {
         try {
             // Simulate processing delay
@@ -229,9 +186,6 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    /**
-     * Generate unique transaction ID
-     */
     private String generateTransactionId() {
         return "TXN_" + System.currentTimeMillis() + "_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
@@ -240,32 +194,25 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public PaymentResponseDto getPaymentById(UUID paymentId) {
-        log.info("Fetching payment with ID: {}", paymentId);
 
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found with ID: " + paymentId));
-
         return paymentMapper.toResponseDto(payment);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PaymentResponseDto getPaymentByOrderId(UUID orderId) {
-        log.info("Fetching payment for order: {}", orderId);
-
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found for order: " + orderId));
-
         return paymentMapper.toResponseDto(payment);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<PaymentResponseDto> getPaymentsByUserId(Long userId) {
-        log.info("Fetching payments for customer: {}", userId);
 
         List<Payment> payments = paymentRepository.findByUserIdOrderByCreatedAtDesc(userId);
-
         return payments.stream()
                 .map(paymentMapper::toResponseDto)
                 .toList();
@@ -274,10 +221,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public List<PaymentResponseDto> getPaymentsByStatus(PaymentStatus status) {
-        log.info("Fetching payments with status: {}", status);
-
         List<Payment> payments = paymentRepository.findByStatusOrderByCreatedAtDesc(status);
-
         return payments.stream()
                 .map(paymentMapper::toResponseDto)
                 .toList();
@@ -286,8 +230,6 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public PaymentResponseDto getPaymentByTransactionId(String transactionId) {
-        log.info("Fetching payment with transaction ID: {}", transactionId);
-
         Payment payment = paymentRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found with transaction ID: " + transactionId));
 
@@ -297,14 +239,11 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Auditable(eventType = "UPDATE", entityName = PAYMENT, action = "UPDATE_PAYMENT_STATUS")
     public PaymentResponseDto updatePaymentStatus(UUID paymentId, PaymentStatus status) {
-        log.info("Updating payment status. Payment ID: {}, New Status: {}", paymentId, status);
-
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found with ID: " + paymentId));
 
         payment.setStatus(status);
         payment.setProcessedAt(LocalDateTime.now());
-
         payment = paymentRepository.save(payment);
 
         return paymentMapper.toResponseDto(payment);

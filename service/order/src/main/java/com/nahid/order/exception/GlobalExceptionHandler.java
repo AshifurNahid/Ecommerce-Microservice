@@ -20,13 +20,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(OrderNotFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handleOrderNotFoundException(OrderNotFoundException ex) {
-        log.error("Order not found: {}", ex.getMessage());
         return ApiResponseUtil.failureWithHttpStatus(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(OrderProcessingException.class)
     public ResponseEntity<ApiResponse<Object>> handleOrderProcessingException(OrderProcessingException ex) {
-        log.error("Order processing error: {}", ex.getMessage(), ex);
         return ApiResponseUtil.failureWithHttpStatus(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
@@ -39,28 +37,24 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        log.error("Validation failed: {}", errors);
         String message = String.format(ExceptionMessageConstant.VALIDATION_FAILED, errors.toString());
         return ApiResponseUtil.failureWithHttpStatus(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
-        log.error("Invalid argument: {}", ex.getMessage());
         String message = String.format(ExceptionMessageConstant.INVALID_REQUEST, ex.getMessage());
         return ApiResponseUtil.failureWithHttpStatus(message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<Object>> handleRuntimeException(RuntimeException ex) {
-        log.error("Runtime exception occurred: {}", ex.getMessage(), ex);
         String message = String.format(ExceptionMessageConstant.UNEXPECTED_ERROR, ex.getMessage());
         return ApiResponseUtil.failure(message);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
-        log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
         String message = String.format(ExceptionMessageConstant.UNEXPECTED_ERROR, "An unexpected error occurred");
         return ApiResponseUtil.failure(message);
     }

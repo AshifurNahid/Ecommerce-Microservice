@@ -37,7 +37,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final InventoryReservationRepository reservationRepository;
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Transactional(propagation = Propagation.REQUIRED)
     public PurchaseProductResponseDto reserveInventory(PurchaseProductRequestDto request) {
         if (request.getItems() == null || request.getItems().isEmpty()) {
             throw new IllegalArgumentException("Reservation request contains no items");

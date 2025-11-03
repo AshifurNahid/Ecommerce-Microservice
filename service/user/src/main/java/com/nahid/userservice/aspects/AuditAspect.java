@@ -2,7 +2,7 @@ package com.nahid.userservice.aspects;
 
 import com.nahid.userservice.dto.event.AuditEventMessageDto;
 import com.nahid.userservice.enums.EventStatus;
-import com.nahid.userservice.publisher.AuditEventPublisher;
+import com.nahid.userservice.producer.AuditEventPublisher;
 import com.nahid.userservice.util.annotation.Auditable;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

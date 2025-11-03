@@ -3,7 +3,7 @@ package com.nahid.product.aspects;
 
 import com.nahid.product.dto.event.AuditEventMessageDto;
 import com.nahid.product.enums.EventStatus;
-import com.nahid.product.publisher.AuditEventPublisher;
+import com.nahid.product.producer.AuditEventPublisher;
 import com.nahid.product.util.annotation.Auditable;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
