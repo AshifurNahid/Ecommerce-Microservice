@@ -1,6 +1,6 @@
-package com.nahid.userservice.publisher;
+package com.nahid.order.producer;
 
-import com.nahid.userservice.dto.event.AuditEventMessageDto;
+import com.nahid.order.dto.event.AuditEventMessageDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,9 +25,6 @@ public class AuditEventPublisher {
                         .setHeader(KafkaHeaders.TOPIC, auditTopic)
                         .setHeader(KafkaHeaders.KEY, auditEventMessageDto.getEventId())
                         .build()
-        ).addCallback(
-                result -> log.debug("Audit event published with id {}", auditEventMessageDto.getEventId()),
-                ex -> log.error("Failed to publish audit event {}", auditEventMessageDto.getEventId(), ex)
         );
     }
 }

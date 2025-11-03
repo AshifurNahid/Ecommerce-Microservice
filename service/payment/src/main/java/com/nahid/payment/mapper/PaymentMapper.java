@@ -1,9 +1,9 @@
 package com.nahid.payment.mapper;
 
 
-import com.nahid.payment.dto.PaymentNotificationDto;
-import com.nahid.payment.dto.PaymentRequestDto;
-import com.nahid.payment.dto.PaymentResponseDto;
+import com.nahid.payment.dto.event.PaymentNotificationDto;
+import com.nahid.payment.dto.request.PaymentRequestDto;
+import com.nahid.payment.dto.response.PaymentResponseDto;
 import com.nahid.payment.entity.Payment;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

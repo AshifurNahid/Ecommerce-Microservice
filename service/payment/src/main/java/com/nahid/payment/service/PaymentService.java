@@ -1,7 +1,7 @@
 package com.nahid.payment.service;
 
-import com.nahid.payment.dto.PaymentRequestDto;
-import com.nahid.payment.dto.PaymentResponseDto;
+import com.nahid.payment.dto.request.PaymentRequestDto;
+import com.nahid.payment.dto.response.PaymentResponseDto;
 import com.nahid.payment.enums.PaymentStatus;
 
 import java.math.BigDecimal;

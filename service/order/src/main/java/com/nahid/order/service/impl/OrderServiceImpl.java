@@ -80,17 +80,16 @@ public class OrderServiceImpl implements OrderService {
                             Function.identity(),
                             (existing, replacement) -> existing));
 
-            // Create order entity
+
             Order order = orderMapper.toEntity(request);
             order.setOrderNumber(orderNumber);
             order.setStatus(OrderStatus.PENDING);
 
-            // Create order items
+
             List<OrderItem> orderItems = request.getOrderItems().stream()
                     .map(itemRequest -> createOrderItem(itemRequest, reservedItemsMap))
                     .toList();
 
-            // Calculate total and add items
             BigDecimal totalAmount = orderItems.stream()
                     .map(OrderItem::getTotalPrice)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -98,7 +97,6 @@ public class OrderServiceImpl implements OrderService {
             order.setTotalAmount(totalAmount);
             orderItems.forEach(order::addOrderItem);
 
-            // Save and confirm
             Order savedOrder = orderRepository.save(order);
             productPurchaseService.confirmReservation(orderNumber);
 

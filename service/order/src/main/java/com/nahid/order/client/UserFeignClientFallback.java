@@ -14,7 +14,6 @@ public class UserFeignClientFallback implements UserClient {
 
     @Override
     public ResponseEntity<ApiResponse<UserResponseDto>> getUserById(Long userId) {
-        log.error("Fallback triggered for getUserById with userId: {}", userId);
         ApiResponse<UserResponseDto> response = ApiResponse.<UserResponseDto>builder()
                 .statusCode(503)
                 .success(false)

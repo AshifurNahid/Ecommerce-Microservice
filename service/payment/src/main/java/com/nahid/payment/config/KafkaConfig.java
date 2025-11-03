@@ -1,6 +1,6 @@
 package com.nahid.payment.config;
 
-import com.nahid.payment.dto.PaymentNotificationDto;
+import com.nahid.payment.dto.event.PaymentNotificationDto;
 import com.nahid.payment.dto.event.AuditEventMessageDto;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;

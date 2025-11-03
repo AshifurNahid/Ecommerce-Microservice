@@ -1,7 +1,7 @@
 package com.nahid.payment.controller;
 
-import com.nahid.payment.dto.PaymentRequestDto;
-import com.nahid.payment.dto.PaymentResponseDto;
+import com.nahid.payment.dto.request.PaymentRequestDto;
+import com.nahid.payment.dto.response.PaymentResponseDto;
 import com.nahid.payment.enums.PaymentStatus;
 import com.nahid.payment.service.PaymentService;
 import jakarta.validation.Valid;

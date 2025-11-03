@@ -1,4 +1,4 @@
-package com.nahid.product.publisher;
+package com.nahid.product.producer;
 
 
 import com.nahid.product.dto.event.AuditEventMessageDto;

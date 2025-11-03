@@ -1,4 +1,4 @@
-package com.nahid.payment.dto;
+package com.nahid.payment.dto.request;
 
 import com.nahid.payment.enums.PaymentMethod;
 import jakarta.validation.constraints.*;

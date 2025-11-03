@@ -8,7 +8,6 @@ import com.nahid.order.exception.UserValidationException;
 import com.nahid.order.service.UserValidationService;
 import com.nahid.order.util.constant.ExceptionMessageConstant;
 import feign.FeignException;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
@@ -25,7 +24,7 @@ public class UserValidationServiceImpl implements UserValidationService {
     private final UserClient userClient;
 
     @Override
-    public void validateUserForOrder(@NotNull(message = "User ID is required") Long userId) {
+    public void validateUserForOrder(Long userId) {
         try {
             ResponseEntity<ApiResponse<UserResponseDto>> userResponseDto = userClient.getUserById(userId);
             UserResponseDto user = Optional.ofNullable(userResponseDto)
