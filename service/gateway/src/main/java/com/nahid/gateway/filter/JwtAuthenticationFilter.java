@@ -3,6 +3,7 @@ package com.nahid.gateway.filter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nahid.gateway.config.GatewaySecurityProperties;
+import com.nahid.gateway.dto.CustomAuthContextDto;
 import com.nahid.gateway.util.JwtUtil;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -25,6 +26,7 @@ import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -38,8 +40,7 @@ import static com.nahid.gateway.util.constant.ExceptionMessageConstant.JWT_TOKEN
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final String HEADER_USER_ID = "X-Auth-User";
-    private static final String HEADER_USER_ROLES = "X-Auth-Roles";
+    private static final String HEADER_CUSTOM_AUTH_CONTEXT = "X-Auth-Context";
 
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper;
@@ -68,9 +69,16 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             String username = jwtUtil.extractUsername(token);
             List<String> roles = jwtUtil.extractRoles(token);
 
+            CustomAuthContextDto customAuthContextDto = CustomAuthContextDto.builder()
+                    .userName(username)
+                    .role(roles)
+                    .build();
+
+            String customAuthContextDtoJson = objectMapper.writeValueAsString(customAuthContextDto);
+            String customAuthContextDtoBase64 = Base64.getEncoder().encodeToString(customAuthContextDtoJson.getBytes());
+
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                    .header(HEADER_USER_ID, username)
-                    .header(HEADER_USER_ROLES, roles == null ? "" : String.join(",", roles))
+                    .header(HEADER_CUSTOM_AUTH_CONTEXT, customAuthContextDtoBase64)
                     .build();
 
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
@@ -80,6 +88,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         } catch (JwtException ex) {
             log.error("JWT validation failed for path {}: {}", requestPath, ex.getMessage());
             return writeErrorResponse(exchange, "JWT validation failed");
+        }
+        catch (JsonProcessingException e) {
+            log.error("Failed to serialize auth context: {}", e.getMessage());
+           return writeErrorResponse(exchange, "Failed to serialize auth context");
         }
     }
 
