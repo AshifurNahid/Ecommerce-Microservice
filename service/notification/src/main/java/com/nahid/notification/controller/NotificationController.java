@@ -2,116 +2,114 @@ package com.nahid.notification.controller;
 
 import com.nahid.notification.dto.NotificationDto;
 import com.nahid.notification.dto.NotificationResponseDto;
-import com.nahid.notification.entity.Notification;
 import com.nahid.notification.enums.NotificationStatus;
 import com.nahid.notification.service.NotificationService;
+import com.nahid.notification.util.constant.ApiResponseConstant;
+import com.nahid.notification.util.constant.AppConstant;
+import com.nahid.notification.dto.response.ApiResponse;
+import com.nahid.notification.util.helper.ApiResponseUtil;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1//notifications")
+@RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
-@Slf4j
 public class NotificationController {
 
     private final NotificationService notificationService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<NotificationDto> getNotificationById(@PathVariable UUID id) {
-        log.info("Fetching notification with ID: {}", id);
-
-        try {
-            NotificationDto notification = notificationService.getNotificationById(id);
-            return ResponseEntity.ok(notification);
-        } catch (RuntimeException e) {
-            log.error("Notification not found with ID: {}", id);
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<ApiResponse<NotificationDto>> getNotificationById(@PathVariable UUID id) {
+        NotificationDto notification = notificationService.getNotificationById(id);
+        return ApiResponseUtil.success(
+                notification,
+                String.format(ApiResponseConstant.FETCH_SUCCESSFUL, AppConstant.NOTIFICATION)
+        );
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<NotificationResponseDto>> getNotificationsByUserId(
+    public ResponseEntity<ApiResponse<List<NotificationResponseDto>>> getNotificationsByUserId(
             @PathVariable String userId) {
-        log.info("Fetching notifications for user: {}", userId);
-
         List<NotificationResponseDto> notifications = notificationService.getNotificationsByUserId(userId);
-        return ResponseEntity.ok(notifications);
+        return ApiResponseUtil.success(
+                notifications,
+                String.format(ApiResponseConstant.FETCH_ALL_SUCCESSFUL, AppConstant.NOTIFICATIONS)
+        );
     }
 
     @GetMapping("/user/{userId}/paginated")
-    public ResponseEntity<Page<NotificationResponseDto>> getNotificationsByuserIdPaginated(
+    public ResponseEntity<ApiResponse<Page<NotificationResponseDto>>> getNotificationsByUserIdPaginated(
             @PathVariable String userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        log.info("Fetching paginated notifications for user: {}, page: {}, size: {}",
-                userId, page, size);
-
         Pageable pageable = PageRequest.of(page, size);
         Page<NotificationResponseDto> notifications = notificationService.getNotificationsByUserId(userId, pageable);
-        return ResponseEntity.ok(notifications);
+        return ApiResponseUtil.success(
+                notifications,
+                String.format(ApiResponseConstant.FETCH_ALL_SUCCESSFUL, AppConstant.NOTIFICATIONS)
+        );
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<NotificationDto> updateNotificationStatus(
+    public ResponseEntity<ApiResponse<NotificationDto>> updateNotificationStatus(
             @PathVariable UUID id,
             @RequestParam NotificationStatus status) {
-        log.info("Updating notification status to {} for ID: {}", status, id);
-
-        try {
-            NotificationDto updatedNotification = notificationService.updateNotificationStatus(id, status);
-            return ResponseEntity.ok(updatedNotification);
-        } catch (RuntimeException e) {
-            log.error("Failed to update notification status for ID: {}", id);
-            return ResponseEntity.notFound().build();
-        }
+        NotificationDto updatedNotification = notificationService.updateNotificationStatus(id, status);
+        return ApiResponseUtil.success(
+                updatedNotification,
+                String.format(ApiResponseConstant.STATUS_UPDATE_SUCCESSFUL, AppConstant.NOTIFICATION, status.name())
+        );
     }
 
     @GetMapping("/failed")
-    public ResponseEntity<List<NotificationResponseDto>> getFailedNotifications() {
-        log.info("Fetching failed notifications");
-
+    public ResponseEntity<ApiResponse<List<NotificationResponseDto>>> getFailedNotifications() {
         List<NotificationResponseDto> failedNotifications = notificationService.getFailedNotifications();
-        return ResponseEntity.ok(failedNotifications);
+        return ApiResponseUtil.success(
+                failedNotifications,
+                String.format(ApiResponseConstant.FETCH_ALL_SUCCESSFUL, AppConstant.FAILED_NOTIFICATIONS)
+        );
     }
 
     @PostMapping("/retry-failed")
-    public ResponseEntity<String> retryFailedNotifications() {
-        log.info("Triggering retry for failed notifications");
-
-        try {
-            notificationService.retryFailedNotifications();
-            return ResponseEntity.ok("Failed notifications retry process initiated");
-        } catch (Exception e) {
-            log.error("Error during retry process: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error occurred during retry process");
-        }
+    public ResponseEntity<ApiResponse<Void>> retryFailedNotifications() {
+        notificationService.retryFailedNotifications();
+        return ApiResponseUtil.success(
+                null,
+                String.format(ApiResponseConstant.PROCESS_INITIATED, AppConstant.RETRY_FAILED_NOTIFICATIONS),
+                HttpStatus.ACCEPTED
+        );
     }
 
     @GetMapping("/health")
-    public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("Notification service is healthy");
+    public ResponseEntity<ApiResponse<String>> healthCheck() {
+        return ApiResponseUtil.success(
+                "Notification service is healthy",
+                String.format(ApiResponseConstant.FETCH_SUCCESSFUL, AppConstant.HEALTH)
+        );
     }
 
     @PostMapping
-    public ResponseEntity<NotificationDto> createNotification(@RequestBody NotificationDto notificationDto) {
-        log.info("Creating manual notification for user: {}", notificationDto.getUserId());
-
-        try {
-            NotificationDto createdNotification = notificationService.createNotification(notificationDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdNotification);
-        } catch (Exception e) {
-            log.error("Error creating notification: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    public ResponseEntity<ApiResponse<NotificationDto>> createNotification(@RequestBody NotificationDto notificationDto) {
+        NotificationDto createdNotification = notificationService.createNotification(notificationDto);
+        return ApiResponseUtil.success(
+                createdNotification,
+                String.format(ApiResponseConstant.CREATE_SUCCESSFUL, AppConstant.NOTIFICATION),
+                HttpStatus.CREATED
+        );
     }
 }
