@@ -7,6 +7,7 @@ import com.nahid.notification.dto.PaymentNotificationDto;
 import com.nahid.notification.entity.Notification;
 import com.nahid.notification.enums.NotificationStatus;
 import com.nahid.notification.enums.ReferenceType;
+import com.nahid.notification.exception.NotificationNotFoundException;
 import com.nahid.notification.mapper.NotificationMapper;
 import com.nahid.notification.repository.NotificationRepository;
 import com.nahid.notification.service.NotificationService;
@@ -45,7 +46,7 @@ public class NotificationServiceImpl implements NotificationService {
     public NotificationDto getNotificationById(UUID id) {
 
         Notification notification = notificationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Notification not found with ID: " + id));
+                .orElseThrow(() -> new NotificationNotFoundException("Notification not found with ID: " + id));
 
         return notificationMapper.toDto(notification);
     }
@@ -73,7 +74,7 @@ public class NotificationServiceImpl implements NotificationService {
     public NotificationDto updateNotificationStatus(UUID id, NotificationStatus status) {
 
         Notification notification = notificationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Notification not found with ID: " + id));
+                .orElseThrow(() -> new NotificationNotFoundException("Notification not found with ID: " + id));
 
         notification.setStatus(status);
         if (status == NotificationStatus.SENT) {
