@@ -19,13 +19,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(PaymentNotFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handlePaymentNotFoundException(PaymentNotFoundException ex) {
-        log.error("Payment not found: {}", ex.getMessage());
         return ApiResponseUtil.failureWithHttpStatus(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(PaymentException.class)
     public ResponseEntity<ApiResponse<Object>> handlePaymentException(PaymentException ex) {
-        log.error("Payment error: {}", ex.getMessage());
         return ApiResponseUtil.failureWithHttpStatus(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
@@ -44,7 +42,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
-        log.error("Unexpected error: {}", ex.getMessage(), ex);
         return ApiResponseUtil.failure("An unexpected error occurred");
     }
 }
