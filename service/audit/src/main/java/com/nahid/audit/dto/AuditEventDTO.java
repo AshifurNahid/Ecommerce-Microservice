@@ -6,6 +6,7 @@ import com.nahid.audit.enums.EventStatus;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -21,4 +22,6 @@ public class AuditEventDTO {
     private String ipAddress;
     private EventStatus status;
     private String errorMessage;
+    private Map<String, Object> previousState;
+    private Map<String, Object> nextState;
 }

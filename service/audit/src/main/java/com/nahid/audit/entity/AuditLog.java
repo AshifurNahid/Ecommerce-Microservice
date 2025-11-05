@@ -4,8 +4,11 @@ package com.nahid.audit.entity;
 import com.nahid.audit.enums.EventStatus;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 
 @Data
@@ -53,5 +56,13 @@ public class AuditLog {
 
     @Column(name = "error_message")
     private String errorMessage;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "previous_state", columnDefinition = "jsonb")
+    private Map<String, Object> previousState;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "next_state", columnDefinition = "jsonb")
+    private Map<String, Object> nextState;
 
 }

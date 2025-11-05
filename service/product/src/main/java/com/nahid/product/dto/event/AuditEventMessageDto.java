@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 @Builder
@@ -23,6 +24,8 @@ public class AuditEventMessageDto {
     private String ipAddress;
     private EventStatus status;
     private String errorMessage;
+    private Map<String, Object> previousState;
+    private Map<String, Object> nextState;
 
 
 }

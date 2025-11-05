@@ -137,6 +137,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    @Auditable(eventType = "UPDATE", entityName = PRODUCT, action = "UPDATE_PRODUCT")
     public ProductResponseDto updateProduct(Long id, UpdateProductRequestDto request) {
 
 
@@ -159,6 +160,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    @Auditable(eventType = "DELETE", entityName = PRODUCT, action = "DELETE_PRODUCT")
     public void deleteProduct(Long id) {
 
         if (!productRepository.existsById(id)) {
