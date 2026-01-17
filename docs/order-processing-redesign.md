@@ -260,6 +260,188 @@ public class InventoryService {
 - **Security**: Validate user ownership of cart/order; ensure services authenticate via mTLS/JWT.
 - **Data consistency**: Use outbox pattern to avoid lost events. Include versioning on entities for optimistic concurrency.
 
+## 6.1 Generic Saga Pattern Template (Command-based, Orchestrated)
+
+This template standardizes how orchestrated sagas are described and implemented across services, ensuring deterministic rollback, idempotency, and reuse of command steps.
+
+### Problem Statement
+
+In a distributed system, a single business operation may span many internal service calls. If any intermediate step fails, the system must roll back previously completed steps to maintain data consistency. Traditional database transactions cannot span multiple services, so we need a distributed transaction mechanism.
+
+### Solution Overview
+
+Use an orchestrated saga pattern with:
+
+- A **Saga Manager** (orchestrator)
+- A **Command interface** implemented by each step
+- **Compensating (rollback) logic** for every successful step
+
+The Saga Manager:
+
+- Executes steps sequentially
+- Tracks successfully completed steps
+- Automatically triggers rollback when any step fails
+
+### Core Design Principles
+
+1. Each step must be reversible.
+2. Rollback order is always reverse execution order.
+3. Only completed steps are rolled back.
+4. Saga Manager owns orchestration, not business logic.
+5. Commands are reusable across sagas.
+
+### Command Interface (Contract)
+
+Every service operation participating in a saga must implement this interface:
+
+```java
+public interface SagaCommand {
+
+    /**
+     * Executes the business operation.
+     * Must be idempotent.
+     */
+    void execute() throws Exception;
+
+    /**
+     * Compensates (rolls back) the executed operation.
+     * Must also be idempotent.
+     */
+    void compensate() throws Exception;
+}
+```
+
+### Saga Manager (Orchestrator)
+
+```java
+public class SagaManager {
+
+    private final List<SagaCommand> commands = new ArrayList<>();
+    private final Deque<SagaCommand> executedCommands = new ArrayDeque<>();
+
+    public void addStep(SagaCommand command) {
+        commands.add(command);
+    }
+
+    public void execute() throws Exception {
+        try {
+            for (SagaCommand command : commands) {
+                command.execute();
+                executedCommands.push(command);
+            }
+        } catch (Exception ex) {
+            rollback();
+            throw ex;
+        }
+    }
+
+    private void rollback() {
+        while (!executedCommands.isEmpty()) {
+            try {
+                executedCommands.pop().compensate();
+            } catch (Exception rollbackEx) {
+                // Log and continue rollback
+            }
+        }
+    }
+}
+```
+
+### How Services Participate in a Saga
+
+Each service exposes two operations:
+
+| Operation | Purpose |
+| --- | --- |
+| `execute()` | Perform the actual business action |
+| `compensate()` | Undo the business action |
+
+Example: Wallet debit command
+
+```java
+public class DebitWalletCommand implements SagaCommand {
+
+    private final WalletService walletService;
+    private final String walletId;
+    private final BigDecimal amount;
+
+    @Override
+    public void execute() {
+        walletService.debit(walletId, amount);
+    }
+
+    @Override
+    public void compensate() {
+        walletService.credit(walletId, amount);
+    }
+}
+```
+
+### Execution Flow Example (10–20 Services)
+
+```
+SagaManager
+   |
+   |-- Step 1: Validate User ✔
+   |-- Step 2: Lock Wallet ✔
+   |-- Step 3: Debit Wallet ✔
+   |-- Step 4: Create Transaction ✔
+   |-- Step 5: Call Aggregator ✔
+   |-- Step 6: Update Ledger ✔
+   |-- Step 7: Notify Service ❌ (FAILED)
+   |
+   └── ROLLBACK
+         ├── Undo Step 6
+         ├── Undo Step 5
+         ├── Undo Step 4
+         ├── Undo Step 3
+         ├── Undo Step 2
+         └── Undo Step 1
+```
+
+### Reuse Across the System
+
+```java
+SagaManager saga = new SagaManager();
+
+saga.addStep(new ValidateUserCommand(...));
+saga.addStep(new LockWalletCommand(...));
+saga.addStep(new DebitWalletCommand(...));
+saga.addStep(new CallAggregatorCommand(...));
+saga.addStep(new LedgerUpdateCommand(...));
+
+saga.execute();
+```
+
+### Applying the Template to Order Placement (This Repository)
+
+The Order service acts as the orchestrator and maps its saga steps directly to Inventory and Payment operations. Each step is idempotent, and every successful step has an explicit compensation action.
+
+```java
+SagaManager saga = new SagaManager();
+
+saga.addStep(new ReserveInventoryCommand(inventoryClient, order, items, correlationId));
+saga.addStep(new AuthorizePaymentCommand(paymentClient, order, correlationId));
+saga.addStep(new ConfirmInventoryCommand(inventoryClient, order, correlationId));
+
+saga.execute();
+```
+
+Command responsibilities:
+
+| Step | execute() | compensate() |
+| --- | --- | --- |
+| ReserveInventoryCommand | Create inventory reservation (Try) | Release reservation (Cancel) |
+| AuthorizePaymentCommand | Authorize payment hold | Void authorization |
+| ConfirmInventoryCommand | Confirm reservation (Confirm) | Release reservation if confirmation fails |
+
+Operational rules:
+
+1. **Persist order state per step** (e.g., `PENDING_RESERVATION` → `RESERVED` → `PAYMENT_AUTHORIZED` → `CONFIRMED`) so retries remain safe.
+2. **Use outbox for events** (e.g., `OrderConfirmed`, `OrderFailed`) to avoid lost notifications.
+3. **Propagate correlation IDs** across steps for traceability.
+4. **Apply timeouts and retries** on network calls; avoid holding DB transactions open across remote calls.
+
 ## 7. Refactored Design Proposal
 
 1. **Order Service acts as orchestrator** using saga pattern (Try-Confirm/Cancel). It maintains order state machine and idempotency table.

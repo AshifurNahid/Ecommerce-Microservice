@@ -1,20 +1,22 @@
 package com.nahid.order.service.impl;
 
 import com.nahid.order.dto.OrderEventDto;
-import com.nahid.order.dto.request.CreateOrderItemRequest;
 import com.nahid.order.dto.request.CreateOrderRequest;
 import com.nahid.order.dto.request.OrderDto;
-import com.nahid.order.dto.response.PurchaseProductItemResultDto;
-import com.nahid.order.dto.response.PurchaseProductResponseDto;
 import com.nahid.order.entity.Order;
-import com.nahid.order.entity.OrderItem;
 import com.nahid.order.enums.OrderStatus;
 import com.nahid.order.exception.OrderNotFoundException;
 import com.nahid.order.exception.OrderProcessingException;
 import com.nahid.order.mapper.OrderMapper;
 import com.nahid.order.producer.OrderEventPublisher;
 import com.nahid.order.repository.OrderRepository;
+import com.nahid.order.saga.ConfirmReservationCommand;
+import com.nahid.order.saga.OrderSagaContext;
+import com.nahid.order.saga.PersistOrderCommand;
+import com.nahid.order.saga.ReserveProductsCommand;
+import com.nahid.order.saga.SagaManager;
 import com.nahid.order.service.OrderNumberService;
+import com.nahid.order.service.OrderItemFactory;
 import com.nahid.order.service.OrderService;
 import com.nahid.order.service.OrderStatusService;
 import com.nahid.order.service.ProductPurchaseService;
@@ -28,12 +30,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static com.nahid.order.util.constant.AppConstant.ORDER;
 
@@ -50,112 +48,33 @@ public class OrderServiceImpl implements OrderService {
     private final OrderStatusService orderStatusService;
     private final OrderNumberService orderNumberService;
     private final OrderEventPublisher orderEventPublisher;
+    private final OrderItemFactory orderItemFactory;
 
     @Override
     @Auditable(eventType = "CREATE", entityName = ORDER, action = "CREATE_ORDER")
     public OrderDto createOrder(CreateOrderRequest request) {
-        String orderNumber = null;
-        boolean reservationCreated = false;
-
         try {
             // Validate user
             userValidationService.validateUserForOrder(request.getUserId());
 
             // Generate order number and reserve products
-            orderNumber = orderNumberService.generateOrderNumber();
-            PurchaseProductResponseDto reservationResponse = productPurchaseService.reserveProducts(request, orderNumber);
+            String orderNumber = orderNumberService.generateOrderNumber();
+            OrderSagaContext context = new OrderSagaContext(request, orderNumber);
 
-            if (reservationResponse == null || reservationResponse.getItems() == null || reservationResponse.getItems().isEmpty()) {
-                throw new OrderProcessingException(String.format(
-                        ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
-                        "Product service returned empty reservation data"));
-            }
-            reservationCreated = true;
+            SagaManager sagaManager = new SagaManager();
+            sagaManager.addStep(new ReserveProductsCommand(productPurchaseService, context));
+            sagaManager.addStep(new PersistOrderCommand(orderRepository, orderMapper, orderItemFactory, context));
+            sagaManager.addStep(new ConfirmReservationCommand(productPurchaseService, context));
+            sagaManager.execute();
 
-            // Build reserved items map
-            Map<Long, PurchaseProductItemResultDto> reservedItemsMap = reservationResponse.getItems()
-                    .stream()
-                    .collect(Collectors.toMap(
-                            PurchaseProductItemResultDto::getProductId,
-                            Function.identity(),
-                            (existing, replacement) -> existing));
-
-
-            Order order = orderMapper.toEntity(request);
-            order.setOrderNumber(orderNumber);
-            order.setStatus(OrderStatus.PENDING);
-
-
-            List<OrderItem> orderItems = request.getOrderItems().stream()
-                    .map(itemRequest -> createOrderItem(itemRequest, reservedItemsMap))
-                    .toList();
-
-            BigDecimal totalAmount = orderItems.stream()
-                    .map(OrderItem::getTotalPrice)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            order.setTotalAmount(totalAmount);
-            orderItems.forEach(order::addOrderItem);
-
-            Order savedOrder = orderRepository.save(order);
-            productPurchaseService.confirmReservation(orderNumber);
-
+            Order savedOrder = context.getSavedOrder();
             publishOrderEvent(savedOrder, OrderStatus.PENDING);
 
             return orderMapper.toDto(savedOrder);
 
-        } catch (OrderProcessingException e) {
-            rollbackReservation(reservationCreated, orderNumber);
-            throw e;
         } catch (Exception e) {
-            rollbackReservation(reservationCreated, orderNumber);
             throw new OrderProcessingException(
                     String.format(ExceptionMessageConstant.ORDER_CREATION_FAILED, e.getMessage()), e);
-        }
-    }
-
-    private OrderItem createOrderItem(CreateOrderItemRequest itemRequest,
-                                      Map<Long, PurchaseProductItemResultDto> reservedItemsMap) {
-        Long productId = itemRequest.getProductId();
-        PurchaseProductItemResultDto reservedItem = reservedItemsMap.get(productId);
-
-        // Validate reserved item
-        if (reservedItem == null || !reservedItem.isAvailable()) {
-            throw new OrderProcessingException(String.format(
-                    ExceptionMessageConstant.PRODUCT_RESERVATION_FAILED,
-                    "Product unavailable or not reserved: " + productId));
-        }
-
-        if (reservedItem.getPrice() == null) {
-            throw new OrderProcessingException(String.format(
-                    ExceptionMessageConstant.PRODUCT_PRICE_FETCH_FAILED,
-                    "Price missing for product: " + productId));
-        }
-
-        // Log quantity mismatch if any
-        if (!itemRequest.getQuantity().equals(reservedItem.getRequestedQuantity())) {
-            log.warn("Quantity mismatch for product {}. Requested: {}, Reserved: {}",
-                    productId, itemRequest.getQuantity(), reservedItem.getRequestedQuantity());
-        }
-
-        // Create order item
-        OrderItem item = orderMapper.toEntity(itemRequest);
-        item.setProductName(reservedItem.getProductName());
-        item.setProductSku(reservedItem.getSku());
-        item.setUnitPrice(reservedItem.getPrice());
-        item.setTotalPrice(reservedItem.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
-
-        return item;
-    }
-
-    private void rollbackReservation(boolean reservationCreated, String orderNumber) {
-        if (reservationCreated && orderNumber != null) {
-            try {
-                productPurchaseService.releaseReservation(orderNumber);
-            } catch (Exception e) {
-                log.error("Failed to release reservation for order {}: {}",
-                        orderNumber, e.getMessage());
-            }
         }
     }
 
