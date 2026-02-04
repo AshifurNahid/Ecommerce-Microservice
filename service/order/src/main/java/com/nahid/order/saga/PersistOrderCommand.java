@@ -65,7 +65,7 @@ public class PersistOrderCommand implements SagaCommand {
     }
 
     @Override
-    public void compensate() {
+    public void rollback() {
         Order savedOrder = context.getSavedOrder();
         if (savedOrder != null) {
             orderRepository.delete(savedOrder);

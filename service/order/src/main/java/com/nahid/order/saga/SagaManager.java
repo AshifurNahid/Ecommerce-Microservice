@@ -7,6 +7,8 @@ import java.util.List;
 
 public class SagaManager {
 
+    private static final int MAX_RETRY_ATTEMPTS = 3;
+
     private final List<SagaCommand> commands = new ArrayList<>();
     private final Deque<SagaCommand> executedCommands = new ArrayDeque<>();
 
@@ -21,18 +23,34 @@ public class SagaManager {
                 executedCommands.push(command);
             }
         } catch (Exception ex) {
-            rollback();
+            rollbackAll();
             throw ex;
         }
     }
 
-    private void rollback() {
+    private void rollbackAll() {
         while (!executedCommands.isEmpty()) {
-            try {
-                executedCommands.pop().compensate();
-            } catch (Exception rollbackEx) {
-                // log and continue rollback
+            SagaCommand command = executedCommands.pop();
+
+            for (int attempt = 0; attempt < MAX_RETRY_ATTEMPTS; attempt++) {
+                try {
+                    command.rollback();
+                    break;
+                } catch (Exception ex) {
+                    if (attempt == MAX_RETRY_ATTEMPTS - 1) {
+                        // Log critical error - manual intervention needed
+                    }
+                    sleep(1000L * (attempt + 1));
+                }
             }
+        }
+    }
+
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 }

@@ -4,5 +4,5 @@ public interface SagaCommand {
 
     void execute() throws Exception;
 
-    void compensate() throws Exception;
+    void rollback() throws Exception;
 }

@@ -30,7 +30,7 @@ public class ReserveProductsCommand implements SagaCommand {
     }
 
     @Override
-    public void compensate() {
+    public void rollback() {
         productPurchaseService.releaseReservation(context.getOrderNumber());
     }
 }

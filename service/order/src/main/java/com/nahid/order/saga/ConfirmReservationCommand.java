@@ -18,7 +18,11 @@ public class ConfirmReservationCommand implements SagaCommand {
     }
 
     @Override
-    public void compensate() {
-        // no-op: reservation release handled by earlier steps
+    public void rollback() {
+        try {
+            productPurchaseService.releaseReservation(context.getOrderNumber());
+        } catch (Exception e) {
+            // Idempotent - may already be released
+        }
     }
 }

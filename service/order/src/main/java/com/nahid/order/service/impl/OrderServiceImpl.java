@@ -54,10 +54,8 @@ public class OrderServiceImpl implements OrderService {
     @Auditable(eventType = "CREATE", entityName = ORDER, action = "CREATE_ORDER")
     public OrderDto createOrder(CreateOrderRequest request) {
         try {
-            // Validate user
             userValidationService.validateUserForOrder(request.getUserId());
 
-            // Generate order number and reserve products
             String orderNumber = orderNumberService.generateOrderNumber();
             OrderSagaContext context = new OrderSagaContext(request, orderNumber);
 
