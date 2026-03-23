@@ -19,6 +19,10 @@ import com.nahid.product.service.PurchaseService;
 import com.nahid.product.util.annotation.Auditable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -46,6 +50,10 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.REPEATABLE_READ, rollbackFor = Exception.class)
     @Auditable(eventType = "CREATE", entityName = PRODUCT, action = "CREATE_PRODUCT")
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "featuredProducts", allEntries = true)
+    })
     public ProductResponseDto createProduct(CreateProductRequestDto request) {
 
         if (productRepository.existsBySku(request.getSku())) {
@@ -68,6 +76,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "products", key = "'id:' + #id")
     public ProductResponseDto getProductById(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
@@ -77,6 +86,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "products", key = "'sku:' + #sku")
     public ProductResponseDto getProductBySku(String sku) {
 
         Product product = productRepository.findBySku(sku)
@@ -123,6 +133,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "featuredProducts")
     public List<ProductResponseDto> getFeaturedProducts() {
         List<Product> products = productRepository.findByIsFeaturedTrue();
         return productMapper.toResponseList(products);
@@ -138,6 +149,10 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     @Auditable(eventType = "UPDATE", entityName = PRODUCT, action = "UPDATE_PRODUCT")
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "featuredProducts", allEntries = true)
+    })
     public ProductResponseDto updateProduct(Long id, UpdateProductRequestDto request) {
 
 
@@ -161,6 +176,10 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     @Auditable(eventType = "DELETE", entityName = PRODUCT, action = "DELETE_PRODUCT")
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "featuredProducts", allEntries = true)
+    })
     public void deleteProduct(Long id) {
 
         if (!productRepository.existsById(id)) {
@@ -172,6 +191,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    @Caching(put = {
+            @CachePut(value = "products", key = "'id:' + #id"),
+            @CachePut(value = "products", key = "'sku:' + #result.sku")
+    })
     public ProductResponseDto updateStock(Long id, Integer newStock) {
         return inventoryService.updateStock(id, newStock);
     }

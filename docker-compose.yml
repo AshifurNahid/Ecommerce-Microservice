@@ -3,8 +3,9 @@ services:
     container_name: ms_pg_sql
     image: postgres
     environment:
-      POSTGRES_USER: alibou
-      POSTGRES_PASSWORD: alibou
+      POSTGRES_USER: nahid
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: ecommerce
       PGDATA: /data/postgres
     volumes:
       - postgres:/data/postgres
@@ -75,6 +76,22 @@ services:
       - 1080:1080
       - 1025:1025
 
+  redis:
+    container_name: ms_redis
+    image: redis:7-alpine
+    environment:
+      REDIS_USERNAME: ${REDIS_USERNAME:-default}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    command: ["sh", "-c", "redis-server --appendonly yes --port $$REDIS_PORT --requirepass $$REDIS_PASSWORD"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis:/data
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
 networks:
   microservices-net:
     driver: bridge
@@ -83,3 +100,4 @@ volumes:
   postgres:
   pgadmin:
   mongo:
+  redis:
